@@ -1,7 +1,7 @@
 import axios from "axios"
 
 const API = axios.create({
-  baseURL: "http://localhost:8080"
+  baseURL: "https://task-management-system-backend-x9qb.onrender.com"
 })
 
 API.interceptors.request.use((req) => {
