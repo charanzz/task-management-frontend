@@ -10,7 +10,7 @@ function Register() {
 
   const handleRegister = async () => {
     try {
-      await API.post("/api/users/register", {
+      await API.post("/api/users/register",formData {
         name,
         email,
         password
