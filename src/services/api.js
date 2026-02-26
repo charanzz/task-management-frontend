@@ -22,9 +22,16 @@ const api = axios.create({
 ───────────────────────────────────────────── */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) {
+
+  // ❌ Don't attach token for login/register
+  if (
+    token &&
+    !config.url.includes("/api/auth/login") &&
+    !config.url.includes("/api/auth/register")
+  ) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
