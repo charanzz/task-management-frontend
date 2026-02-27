@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { authAPI } from '../services/api'
 
 export default function Register() {
-  const [form, setForm]       = useState({ username:'', email:'', password:'', confirm:'' })
+  const [form, setForm]       = useState({ name:'', email:'', password:'', confirm:'' })
   const [showPw,  setShowPw]  = useState(false)
   const [error,   setError]   = useState('')
   const [success, setSuccess] = useState('')
@@ -23,15 +23,14 @@ export default function Register() {
 
   async function submit(e) {
     e.preventDefault()
-    if (!form.username || !form.email || !form.password) { setError('All fields are required.'); return }
+    if (!form.name || !form.email || !form.password) { setError('All fields are required.'); return }
     if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return }
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return }
 
     setLoading(true); setError('')
     try {
-      // Sends { username, email, password } → backend returns User object
       await authAPI.register({
-        username: form.username.trim(),
+        name:     form.name.trim(),
         email:    form.email.trim(),
         password: form.password,
       })
@@ -39,7 +38,6 @@ export default function Register() {
       setTimeout(() => navigate('/login'), 1500)
     } catch (err) {
       const msg = err.response?.data
-      // Handle Spring @Valid validation errors and custom errors
       if (typeof msg === 'string') {
         setError(msg)
       } else if (msg?.message) {
@@ -100,12 +98,12 @@ export default function Register() {
           )}
 
           <form onSubmit={submit}>
-            {/* USERNAME */}
+            {/* NAME */}
             <div style={{ marginBottom:14 }}>
               <label style={{ display:'block', fontSize:10, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Username</label>
-              <input style={inputStyle} type="text" placeholder="choose a username"
-                value={form.username} onChange={e => set('username', e.target.value)}
-                onFocus={focus} onBlur={blur_} autoComplete="username" />
+              <input style={inputStyle} type="text" placeholder="choose a name"
+                value={form.name} onChange={e => set('name', e.target.value)}
+                onFocus={focus} onBlur={blur_} autoComplete="name" />
             </div>
 
             {/* EMAIL */}

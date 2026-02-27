@@ -27,22 +27,21 @@ api.interceptors.response.use(
   }
 )
 
-// Auth — matches UserController EXACTLY
-// POST /api/users/register — body: { username, email, password } — returns User object
-// POST /api/users/login    — body: { email, password }           — returns plain string token
+// Auth
 export const authAPI = {
+  // sends { name, email, password } — backend RegisterRequest expects "name" not "username"
   register: (data) => api.post('/api/users/register', data),
-  login:    (data) => api.post('/api/users/login',    data),
+  // returns { token, email, name, id }
+  login:    (data) => api.post('/api/users/login', data),
 }
 
 // Tasks
 export const taskAPI = {
-  getAll:   ()       => api.get('/api/tasks'),
-  create:   (data)   => api.post('/api/tasks', data),
-  update:   (id, d)  => api.put(`/api/tasks/${id}`, d),
-  toggle:   (id)     => api.patch(`/api/tasks/${id}/toggle`),
-  remove:   (id)     => api.delete(`/api/tasks/${id}`),
-  getStats: ()       => api.get('/api/tasks/stats'),
+  getAll:  ()        => api.get('/api/tasks'),
+  create:  (data)    => api.post('/api/tasks', data),
+  update:  (id, d)   => api.put(`/api/tasks/${id}`, d),
+  remove:  (id)      => api.delete(`/api/tasks/${id}`),
+  getStats: ()       => api.get('/api/users/stats'),  // fixed: was /api/tasks/stats
 }
 
 export default api
