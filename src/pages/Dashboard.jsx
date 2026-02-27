@@ -9,7 +9,6 @@ const PRI = {
   LOW:    { color:'#6ee7b7', bg:'rgba(110,231,183,0.10)', label:'Low',    pts:5  },
 }
 
-// Simple StatCard component
 function StatCard({ label, value, sub, color }) {
   return (
     <div style={{
@@ -37,7 +36,6 @@ export default function Dashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  // Fetch tasks + stats
   const fetchAll = useCallback(async () => {
     try {
       const [taskRes, statsRes] = await Promise.all([
@@ -65,24 +63,36 @@ export default function Dashboard() {
     setTimeout(() => setToast(null), 3000)
   }
 
+  // ✅ CREATE (dueDate converted correctly)
   async function handleCreate(data) {
     try {
-      await taskAPI.create(data)
+      const payload = {
+        ...data,
+        dueDate: data.dueDate ? `${data.dueDate}T00:00:00` : null,
+      }
+
+      await taskAPI.create(payload)
       setShowModal(false)
       fetchAll()
-      flash('success', 'Task created!')
+      flash('success', '⚡ Task created!')
     } catch {
       flash('error', 'Could not create task')
     }
   }
 
+  // ✅ UPDATE (dueDate converted correctly)
   async function handleUpdate(id, data) {
     try {
-      await taskAPI.update(id, data)
+      const payload = {
+        ...data,
+        dueDate: data.dueDate ? `${data.dueDate}T00:00:00` : null,
+      }
+
+      await taskAPI.update(id, payload)
       setEditTask(null)
       setShowModal(false)
       fetchAll()
-      flash('success', 'Task updated!')
+      flash('success', '✓ Updated!')
     } catch {
       flash('error', 'Could not update task')
     }
@@ -132,7 +142,6 @@ export default function Dashboard() {
   return (
     <div style={{ padding: 30 }}>
 
-      {/* HEADER */}
       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:20 }}>
         <div>
           <h2>
@@ -143,7 +152,6 @@ export default function Dashboard() {
         <button onClick={handleLogout}>Logout</button>
       </div>
 
-      {/* STATS GRID */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:20 }}>
         <StatCard
           label="Completed"
@@ -171,12 +179,10 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* NEW TASK BUTTON */}
       <button onClick={() => { setEditTask(null); setShowModal(true) }}>
         + New Task
       </button>
 
-      {/* TASK LIST */}
       {loading ? (
         <p>Loading...</p>
       ) : tasks.length === 0 ? (
@@ -206,7 +212,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* TOAST */}
       {toast && (
         <div style={{
           position:'fixed',
