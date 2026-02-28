@@ -44,4 +44,11 @@ export const taskAPI = {
   getStats: ()       => api.get('/api/users/stats'),  // fixed: was /api/tasks/stats
 }
 
+export const userAPI = {
+    getBadges: () => api.get('/api/users/badges'),
+    getLevel:  () => api.get('/api/users/level'),
+    getStats:  () => api.get('/api/users/stats'),
+    getMe:     () => api.get('/api/users/me'),
+}
+
 export default api
