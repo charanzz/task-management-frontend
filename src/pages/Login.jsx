@@ -35,11 +35,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+  const googleConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
   const { login } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
+    if (!googleConfigured) return
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
     script.async = true
@@ -48,12 +50,7 @@ export default function Login() {
     return () => {
       if (document.head.contains(script)) document.head.removeChild(script)
     }
-  }, [])
-
-  useEffect(() => {
-    const id = import.meta.env.VITE_GOOGLE_CLIENT_ID
-    console.log('Google Client ID:', id ? id.substring(0, 20) + '...' : 'NOT SET')
-  }, [])
+  }, [googleConfigured])
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
 
@@ -75,19 +72,14 @@ export default function Login() {
 
   function handleGoogleLogin() {
     if (!window.google) {
-      setError('Google Sign-In is loading. Please try again in a moment.')
-      return
-    }
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-    if (!clientId) {
-      setError('Google Sign-In is not configured. Please use email login.')
+      setError('Google Sign-In is still loading. Please wait a moment and try again.')
       return
     }
     setGoogleLoading(true)
     setError('')
 
     window.google.accounts.id.initialize({
-      client_id: clientId,
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: async (response) => {
         try {
           const res = await authAPI.googleLogin({ idToken: response.credential })
@@ -145,23 +137,27 @@ export default function Login() {
               <div style={{background:'rgba(255,107,107,.08)',border:'1px solid rgba(255,107,107,.2)',borderRadius:10,padding:'11px 14px',fontSize:13,color:'#ff6b6b',marginBottom:18}}>⚠ {error}</div>
             )}
 
-            <button onClick={handleGoogleLogin} disabled={googleLoading} className="google-btn" style={{
-              width:'100%', padding:'13px 16px', borderRadius:12,
-              background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.12)',
-              color:'#f0f0f8', fontSize:14, fontWeight:500, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-              marginBottom:6, transition:'all .2s',
-            }}>
-              {googleLoading ? <Spinner/> : <GoogleIcon/>}
-              {googleLoading ? 'Connecting…' : 'Continue with Google'}
-            </button>
-            <div id="google-btn-container"/>
-
-            <div style={{display:'flex',alignItems:'center',gap:12,margin:'20px 0'}}>
-              <div style={{flex:1,height:1,background:'rgba(255,255,255,.07)'}}/>
-              <span style={{color:'#6b6b8a',fontSize:12}}>or sign in with email</span>
-              <div style={{flex:1,height:1,background:'rgba(255,255,255,.07)'}}/>
-            </div>
+            {/* Google Button — only renders when VITE_GOOGLE_CLIENT_ID is set */}
+            {googleConfigured && (
+              <>
+                <button onClick={handleGoogleLogin} disabled={googleLoading} className="google-btn" style={{
+                  width:'100%', padding:'13px 16px', borderRadius:12,
+                  background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.12)',
+                  color:'#f0f0f8', fontSize:14, fontWeight:500, cursor:'pointer',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                  marginBottom:6, transition:'all .2s',
+                }}>
+                  {googleLoading ? <Spinner/> : <GoogleIcon/>}
+                  {googleLoading ? 'Connecting…' : 'Continue with Google'}
+                </button>
+                <div id="google-btn-container"/>
+                <div style={{display:'flex',alignItems:'center',gap:12,margin:'20px 0'}}>
+                  <div style={{flex:1,height:1,background:'rgba(255,255,255,.07)'}}/>
+                  <span style={{color:'#6b6b8a',fontSize:12}}>or sign in with email</span>
+                  <div style={{flex:1,height:1,background:'rgba(255,255,255,.07)'}}/>
+                </div>
+              </>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div style={{marginBottom:14}}>
