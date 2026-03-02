@@ -10,10 +10,10 @@ const css = `
   @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
   @keyframes spin { to{transform:rotate(360deg)} }
   @keyframes float { 0%,100%{transform:translateY(0) rotate(0deg)} 33%{transform:translateY(-12px) rotate(2deg)} 66%{transform:translateY(-6px) rotate(-1deg)} }
-  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
   .google-btn:hover { background: rgba(255,255,255,.08) !important; transform: translateY(-1px); }
   .google-btn:active { transform: translateY(0); }
 `
+
 function Spinner() {
   return <span style={{width:16,height:16,border:'2px solid rgba(255,255,255,.3)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'spin .7s linear infinite'}}/>
 }
@@ -28,9 +28,6 @@ function GoogleIcon() {
     </svg>
   )
 }
-useEffect(() => {
-  console.log('Google Client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
-}, [])
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
@@ -42,14 +39,20 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  // Load Google Identity Services
   useEffect(() => {
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
     script.async = true
     script.defer = true
     document.head.appendChild(script)
-    return () => document.head.removeChild(script)
+    return () => {
+      if (document.head.contains(script)) document.head.removeChild(script)
+    }
+  }, [])
+
+  useEffect(() => {
+    const id = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    console.log('Google Client ID:', id ? id.substring(0, 20) + '...' : 'NOT SET')
   }, [])
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }))
@@ -71,28 +74,22 @@ export default function Login() {
   }
 
   function handleGoogleLogin() {
-    // Use Google Identity Services popup
     if (!window.google) {
       setError('Google Sign-In is loading. Please try again in a moment.')
+      return
+    }
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) {
+      setError('Google Sign-In is not configured. Please use email login.')
       return
     }
     setGoogleLoading(true)
     setError('')
 
-    // Initialize Google client - you need to set your Google Client ID in .env
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-
-    if (!clientId) {
-      setError('Google Sign-In is not configured yet. Please use email login.')
-      setGoogleLoading(false)
-      return
-    }
-
     window.google.accounts.id.initialize({
       client_id: clientId,
       callback: async (response) => {
         try {
-          // Send Google ID token to backend
           const res = await authAPI.googleLogin({ idToken: response.credential })
           const { token, email, name, id } = res.data
           login(token, { id, name, email })
@@ -108,10 +105,9 @@ export default function Login() {
     window.google.accounts.id.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
         setGoogleLoading(false)
-        // Fallback: render button
         window.google.accounts.id.renderButton(
           document.getElementById('google-btn-container'),
-          { theme: 'filled_black', size: 'large', width: 360 }
+          { theme: 'filled_black', size: 'large', width: 356 }
         )
       }
     })
@@ -130,13 +126,11 @@ export default function Login() {
       <div style={{minHeight:'100vh',background:'#0a0a0f',display:'flex',alignItems:'center',justifyContent:'center',padding:16,position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',top:'-20%',left:'-10%',width:600,height:600,borderRadius:'50%',background:'radial-gradient(circle,rgba(124,58,237,.15),transparent 70%)',pointerEvents:'none'}}/>
         <div style={{position:'absolute',bottom:'-20%',right:'-10%',width:500,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(168,85,247,.1),transparent 70%)',pointerEvents:'none'}}/>
-        {/* Floating particles */}
         {[...Array(5)].map((_,i)=>(
           <div key={i} style={{position:'absolute',width:4,height:4,borderRadius:'50%',background:'rgba(124,58,237,.4)',top:`${15+i*18}%`,left:`${5+i*22}%`,animation:`float ${3+i}s ease-in-out infinite`,animationDelay:`${i*0.5}s`,pointerEvents:'none'}}/>
         ))}
 
         <div style={{width:'100%',maxWidth:420,animation:'fadeUp .5s ease'}}>
-          {/* Logo */}
           <div style={{textAlign:'center',marginBottom:32}}>
             <div style={{width:56,height:56,borderRadius:18,background:'linear-gradient(135deg,#7c3aed,#a855f7)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:26,margin:'0 auto 14px',boxShadow:'0 8px 32px rgba(124,58,237,.5)',animation:'float 4s ease-in-out infinite'}}>⚡</div>
             <h1 style={{fontSize:30,fontWeight:800,color:'#f0f0f8',fontFamily:'Syne, sans-serif',letterSpacing:'-0.5px'}}>TaskFlow</h1>
@@ -151,7 +145,6 @@ export default function Login() {
               <div style={{background:'rgba(255,107,107,.08)',border:'1px solid rgba(255,107,107,.2)',borderRadius:10,padding:'11px 14px',fontSize:13,color:'#ff6b6b',marginBottom:18}}>⚠ {error}</div>
             )}
 
-            {/* Google Sign-In Button */}
             <button onClick={handleGoogleLogin} disabled={googleLoading} className="google-btn" style={{
               width:'100%', padding:'13px 16px', borderRadius:12,
               background:'rgba(255,255,255,.05)', border:'1px solid rgba(255,255,255,.12)',
@@ -162,7 +155,7 @@ export default function Login() {
               {googleLoading ? <Spinner/> : <GoogleIcon/>}
               {googleLoading ? 'Connecting…' : 'Continue with Google'}
             </button>
-            <div id="google-btn-container" style={{marginBottom:6}}/>
+            <div id="google-btn-container"/>
 
             <div style={{display:'flex',alignItems:'center',gap:12,margin:'20px 0'}}>
               <div style={{flex:1,height:1,background:'rgba(255,255,255,.07)'}}/>
