@@ -14,6 +14,9 @@ const css = `
   .google-btn:hover { background: rgba(255,255,255,.08) !important; transform: translateY(-1px); }
   .google-btn:active { transform: translateY(0); }
 `
+useEffect(() => {
+  console.log('Google Client ID:', import.meta.env.VITE_GOOGLE_CLIENT_ID)
+}, [])
 
 function Spinner() {
   return <span style={{width:16,height:16,border:'2px solid rgba(255,255,255,.3)',borderTopColor:'#fff',borderRadius:'50%',display:'inline-block',animation:'spin .7s linear infinite'}}/>
