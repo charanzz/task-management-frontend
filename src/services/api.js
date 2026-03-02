@@ -33,6 +33,8 @@ export const authAPI = {
   register: (data) => api.post('/api/users/register', data),
   // returns { token, email, name, id }
   login:    (data) => api.post('/api/users/login', data),
+
+  googleLogin: (data) => api.post('/api/users/google-login', data),
 }
 
 // Tasks
@@ -50,5 +52,4 @@ export const userAPI = {
     getStats:  () => api.get('/api/users/stats'),
     getMe:     () => api.get('/api/users/me'),
 }
-
 export default api
