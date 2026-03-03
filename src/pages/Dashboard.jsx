@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { taskAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import AIPanel from './AIPanel'
 
 const PRI = {
   HIGH:   { color:'#ff6b6b', bg:'rgba(255,107,107,0.12)', label:'High',   pts:30, emoji:'🔴' },
@@ -37,6 +38,7 @@ const css = `
   .skeleton { background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:12px; }
   ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
   button{cursor:pointer;font-family:'DM Sans',sans-serif} input,textarea,select{font-family:'DM Sans',sans-serif}
+  .nav-btn:hover { background: var(--surface2) !important; }
 `
 
 function Spinner({ size=16 }) {
@@ -143,8 +145,15 @@ function TaskCard({ task, onToggle, onEdit, onDelete, idx }) {
 }
 
 function TaskModal({ task, onClose, onSave }) {
-  const isEdit=!!task
-  const [f,setF]=useState({title:task?.title||'',description:task?.description||'',priority:task?.priority||'MEDIUM',status:task?.status||'TODO',dueDate:task?.dueDate?task.dueDate.split('T')[0]:'',dueTime:task?.dueDate?task.dueDate.split('T')[1]?.slice(0,5)||'09:00':'09:00'})
+  const isEdit = !!(task?.id)
+  const [f,setF]=useState({
+    title:       task?.title||'',
+    description: task?.description||'',
+    priority:    task?.priority||'MEDIUM',
+    status:      task?.status||'TODO',
+    dueDate:     task?.dueDate ? task.dueDate.split('T')[0] : '',
+    dueTime:     task?.dueDate ? task.dueDate.split('T')[1]?.slice(0,5)||'09:00' : '09:00',
+  })
   const [err,setErr]=useState('')
   const [loading,setLoading]=useState(false)
   const set=(k,v)=>setF(p=>({...p,[k]:v}))
@@ -244,8 +253,10 @@ export default function Dashboard() {
   const [loading,setLoading]=useState(true)
   const [showModal,setShowModal]=useState(false)
   const [editTask,setEditTask]=useState(null)
+  const [aiTask,setAiTask]=useState(null)
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
+  const [activeView,setActiveView]=useState('tasks')
 
   const {user,logout}=useAuth()
   const navigate=useNavigate()
@@ -284,7 +295,7 @@ export default function Dashboard() {
   async function handleSave(data) {
     if(editTask){await taskAPI.update(editTask.id,data);flash('success','✓ Task updated!')}
     else{await taskAPI.create(data);flash('success','⚡ Task created!')}
-    setShowModal(false);setEditTask(null);fetchAll()
+    setShowModal(false);setEditTask(null);setAiTask(null);fetchAll()
   }
 
   async function handleToggle(id) {
@@ -301,6 +312,13 @@ export default function Dashboard() {
   async function handleDelete(id) {
     try{await taskAPI.remove(id);fetchAll();flash('success','Task deleted')}
     catch{flash('error','Could not delete task')}
+  }
+
+  function handleAiTaskParsed(parsed) {
+    setAiTask(parsed)
+    setEditTask(null)
+    setActiveView('tasks')
+    setShowModal(true)
   }
 
   const filtered=tasks.filter(t=>{
@@ -323,6 +341,13 @@ export default function Dashboard() {
     </button>
   )
 
+  const navItems = [
+    {key:'ALL',   icon:'◈', label:'All Tasks',   count:tasks.length,                                  isTask:true},
+    {key:'TODO',  icon:'○', label:'To Do',        count:tasks.filter(t=>t.status==='TODO').length,     isTask:true},
+    {key:'IN_PROGRESS',icon:'◉',label:'In Progress',count:tasks.filter(t=>t.status==='IN_PROGRESS').length, isTask:true},
+    {key:'DONE',  icon:'✓', label:'Completed',    count:done,                                          isTask:true},
+  ]
+
   return (
     <>
       <style>{css}</style>
@@ -334,28 +359,37 @@ export default function Dashboard() {
               <div style={{width:34,height:34,borderRadius:10,background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,color:'#fff',flexShrink:0,boxShadow:'0 4px 14px var(--glow)'}}>⚡</div>
               <span style={{fontSize:17,fontWeight:800,color:'var(--text)',fontFamily:'Syne, sans-serif'}}>TaskFlow</span>
             </div>
+
             <nav style={{flex:1,padding:'12px 10px',overflowY:'auto'}}>
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'0 8px',marginBottom:6}}>TASKS</p>
-              {[
-                {key:'ALL',icon:'◈',label:'All Tasks',count:tasks.length},
-                {key:'TODO',icon:'○',label:'To Do',count:tasks.filter(t=>t.status==='TODO').length},
-                {key:'IN_PROGRESS',icon:'◉',label:'In Progress',count:tasks.filter(t=>t.status==='IN_PROGRESS').length},
-                {key:'DONE',icon:'✓',label:'Completed',count:done},
-              ].map(item=>(
-                <button key={item.key} onClick={()=>setFilter(item.key)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:filter===item.key?'rgba(124,58,237,.1)':'transparent',color:filter===item.key?'var(--accent2)':'var(--muted)',border:filter===item.key?'1px solid rgba(124,58,237,.2)':'1px solid transparent',cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
-                  <span style={{width:18,textAlign:'center'}}>{item.icon}</span>
-                  <span style={{flex:1}}>{item.label}</span>
-                  <span style={{fontSize:10,padding:'1px 7px',borderRadius:6,background:'var(--surface2)',color:'var(--muted)'}}>{item.count}</span>
-                </button>
-              ))}
+              {navItems.map(item=>{
+                const active = activeView==='tasks' && filter===item.key
+                return (
+                  <button key={item.key} onClick={()=>{setFilter(item.key);setActiveView('tasks')}}
+                    style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:active?'rgba(124,58,237,.1)':'transparent',color:active?'var(--accent2)':'var(--muted)',border:active?'1px solid rgba(124,58,237,.2)':'1px solid transparent',cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
+                    <span style={{width:18,textAlign:'center'}}>{item.icon}</span>
+                    <span style={{flex:1}}>{item.label}</span>
+                    <span style={{fontSize:10,padding:'1px 7px',borderRadius:6,background:'var(--surface2)',color:'var(--muted)'}}>{item.count}</span>
+                  </button>
+                )
+              })}
+
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['📊','Analytics'],['🔥','Streaks'],['⚙️','Settings']].map(([ic,lb])=>(
-                <button key={lb} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:'transparent',border:'1px solid transparent',color:'var(--muted)',cursor:'pointer',fontSize:13,textAlign:'left',transition:'background .12s'}}
-                  onMouseEnter={e=>e.currentTarget.style.background='var(--surface2)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+
+              {/* AI Assistant nav item */}
+              <button onClick={()=>setActiveView('ai')}
+                style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:activeView==='ai'?'rgba(124,58,237,.1)':'transparent',color:activeView==='ai'?'var(--accent2)':'var(--muted)',border:activeView==='ai'?'1px solid rgba(124,58,237,.2)':'1px solid transparent',cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
+                <span style={{width:18,textAlign:'center'}}>🤖</span>
+                <span style={{flex:1}}>AI Assistant</span>
+                <span style={{fontSize:9,padding:'2px 6px',borderRadius:6,background:'linear-gradient(135deg,#7c3aed,#a855f7)',color:'#fff',fontWeight:700}}>NEW</span>
+              </button>
+
+              {[['🔥','Streaks'],['⚙️','Settings']].map(([ic,lb])=>(
+                <button key={lb} className="nav-btn" style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:'transparent',border:'1px solid transparent',color:'var(--muted)',cursor:'pointer',fontSize:13,textAlign:'left',transition:'background .12s'}}>
                   <span style={{width:18,textAlign:'center'}}>{ic}</span>{lb}
                 </button>
               ))}
+
               <LevelBar level={level.level} focusScore={level.focusScore} nextLevelAt={level.nextLevelAt}/>
               <BadgeGrid badges={badges}/>
               {overdueCnt>0&&(
@@ -365,6 +399,7 @@ export default function Dashboard() {
                 </div>
               )}
             </nav>
+
             <div style={{padding:'13px 14px',borderTop:'1px solid var(--border)'}}>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
                 <div style={{width:34,height:34,borderRadius:10,flexShrink:0,background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:14,color:'#fff'}}>
@@ -387,56 +422,78 @@ export default function Dashboard() {
           <header style={{flexShrink:0,display:'flex',alignItems:'center',gap:12,padding:'13px 24px',background:'var(--surface)',borderBottom:'1px solid var(--border)'}}>
             <button onClick={()=>setSideOpen(s=>!s)} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>☰</button>
             <div style={{flex:1}}>
-              <h1 style={{fontSize:15,fontWeight:700,color:'var(--text)',fontFamily:'Syne, sans-serif'}}>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</h1>
-              <p style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</p>
+              <h1 style={{fontSize:15,fontWeight:700,color:'var(--text)',fontFamily:'Syne, sans-serif'}}>
+                {activeView==='ai'
+                  ? <span>🤖 <span style={{color:'var(--accent2)'}}>AI Assistant</span></span>
+                  : <>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>}
+              </h1>
+              <p style={{fontSize:11,color:'var(--muted)',marginTop:1}}>
+                {activeView==='ai' ? 'Powered by Claude AI' : new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
+              </p>
             </div>
-            <div style={{position:'relative'}}>
-              <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',fontSize:14,pointerEvents:'none'}}>⌕</span>
-              <input type="text" placeholder="Search tasks…" value={search} onChange={e=>setSearch(e.target.value)}
-                style={{paddingLeft:34,paddingRight:14,paddingTop:8,paddingBottom:8,borderRadius:10,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',fontSize:13,outline:'none',width:200,transition:'border-color .2s'}}
-                onFocus={e=>e.target.style.borderColor='var(--accent)'}
-                onBlur={e=>e.target.style.borderColor='var(--border)'}/>
-            </div>
-            {overdueCnt>0&&(
+            {activeView==='tasks' && (
+              <div style={{position:'relative'}}>
+                <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',fontSize:14,pointerEvents:'none'}}>⌕</span>
+                <input type="text" placeholder="Search tasks…" value={search} onChange={e=>setSearch(e.target.value)}
+                  style={{paddingLeft:34,paddingRight:14,paddingTop:8,paddingBottom:8,borderRadius:10,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',fontSize:13,outline:'none',width:200,transition:'border-color .2s'}}
+                  onFocus={e=>e.target.style.borderColor='var(--accent)'}
+                  onBlur={e=>e.target.style.borderColor='var(--border)'}/>
+              </div>
+            )}
+            {overdueCnt>0&&activeView==='tasks'&&(
               <div style={{padding:'6px 12px',borderRadius:8,background:'rgba(255,107,107,.1)',border:'1px solid rgba(255,107,107,.2)',color:'var(--danger)',fontSize:12,fontWeight:600}}>⚠ {overdueCnt} overdue</div>
             )}
-            <button onClick={()=>{setEditTask(null);setShowModal(true)}} style={{padding:'9px 20px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:13,fontWeight:700,boxShadow:'0 4px 14px var(--glow)',transition:'all .2s',flexShrink:0}}
-              onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'}
-              onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
-              + New Task
-            </button>
+            {activeView==='tasks' && (
+              <button onClick={()=>{setEditTask(null);setAiTask(null);setShowModal(true)}} style={{padding:'9px 20px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:13,fontWeight:700,boxShadow:'0 4px 14px var(--glow)',transition:'all .2s',flexShrink:0}}
+                onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'}
+                onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
+                + New Task
+              </button>
+            )}
           </header>
 
           <div style={{flex:1,overflowY:'auto',padding:24}}>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:22}}>
-              <StatCard label="Completed"   value={stats?.completedTasks??done}  sub={`of ${tasks.length} total`}  color="var(--success)" icon="✓"  delay={0}/>
-              <StatCard label="Focus Score" value={stats?.focusScore??0}          sub="points earned"               color="var(--accent2)" icon="⚡" delay={80}/>
-              <StatCard label="Day Streak"  value={stats?.streak??0}              sub="consecutive days"            color="var(--warn)"    icon="🔥" delay={160}/>
-              <StatCard label="Pending"     value={pending}                        sub={`${high} high priority`}    color="var(--danger)"  icon="⏳" delay={240}/>
-            </div>
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
-              {filterBtn('ALL','All Tasks',tasks.length)}
-              {filterBtn('TODO','To Do',tasks.filter(t=>t.status==='TODO').length)}
-              {filterBtn('IN_PROGRESS','In Progress',tasks.filter(t=>t.status==='IN_PROGRESS').length)}
-              {filterBtn('DONE','Completed',done)}
-              <span style={{marginLeft:'auto',fontSize:12,color:'var(--muted)'}}>{filtered.length} task{filtered.length!==1?'s':''}</span>
-            </div>
-            {loading?(
-              <div>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:66,marginBottom:8}}/>)}</div>
-            ):filtered.length===0?(
-              <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'80px 0',animation:'fadeUp .4s ease'}}>
-                <div style={{fontSize:52,marginBottom:16}}>{search?'🔍':filter==='DONE'?'🎉':'📋'}</div>
-                <p style={{fontSize:17,fontWeight:700,color:'var(--text)',marginBottom:6,fontFamily:'Syne, sans-serif'}}>{search?'No tasks match your search':filter==='DONE'?'No completed tasks yet':'No tasks yet'}</p>
-                <p style={{fontSize:13,color:'var(--muted)',marginBottom:24}}>{search?'Try a different keyword':'Click "+ New Task" to get started'}</p>
-                {!search&&<button onClick={()=>setShowModal(true)} style={{padding:'10px 28px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:14,fontWeight:700,boxShadow:'0 4px 14px var(--glow)'}}>+ Create First Task</button>}
-              </div>
-            ):(
-              <div>{filtered.map((task,i)=><TaskCard key={task.id} task={task} idx={i} onToggle={()=>handleToggle(task.id)} onEdit={()=>{setEditTask(task);setShowModal(true)}} onDelete={()=>handleDelete(task.id)}/>)}</div>
+            {activeView==='ai' ? (
+              <AIPanel onTaskParsed={handleAiTaskParsed}/>
+            ) : (
+              <>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:22}}>
+                  <StatCard label="Completed"   value={stats?.completedTasks??done}  sub={`of ${tasks.length} total`}  color="var(--success)" icon="✓"  delay={0}/>
+                  <StatCard label="Focus Score" value={stats?.focusScore??0}          sub="points earned"               color="var(--accent2)" icon="⚡" delay={80}/>
+                  <StatCard label="Day Streak"  value={stats?.streak??0}              sub="consecutive days"            color="var(--warn)"    icon="🔥" delay={160}/>
+                  <StatCard label="Pending"     value={pending}                        sub={`${high} high priority`}    color="var(--danger)"  icon="⏳" delay={240}/>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+                  {filterBtn('ALL','All Tasks',tasks.length)}
+                  {filterBtn('TODO','To Do',tasks.filter(t=>t.status==='TODO').length)}
+                  {filterBtn('IN_PROGRESS','In Progress',tasks.filter(t=>t.status==='IN_PROGRESS').length)}
+                  {filterBtn('DONE','Completed',done)}
+                  <span style={{marginLeft:'auto',fontSize:12,color:'var(--muted)'}}>{filtered.length} task{filtered.length!==1?'s':''}</span>
+                </div>
+                {loading?(
+                  <div>{[1,2,3,4].map(i=><div key={i} className="skeleton" style={{height:66,marginBottom:8}}/>)}</div>
+                ):filtered.length===0?(
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'80px 0',animation:'fadeUp .4s ease'}}>
+                    <div style={{fontSize:52,marginBottom:16}}>{search?'🔍':filter==='DONE'?'🎉':'📋'}</div>
+                    <p style={{fontSize:17,fontWeight:700,color:'var(--text)',marginBottom:6,fontFamily:'Syne, sans-serif'}}>{search?'No tasks match your search':filter==='DONE'?'No completed tasks yet':'No tasks yet'}</p>
+                    <p style={{fontSize:13,color:'var(--muted)',marginBottom:24}}>{search?'Try a different keyword':'Click "+ New Task" to get started'}</p>
+                    {!search&&<button onClick={()=>setShowModal(true)} style={{padding:'10px 28px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:14,fontWeight:700,boxShadow:'0 4px 14px var(--glow)'}}>+ Create First Task</button>}
+                  </div>
+                ):(
+                  <div>{filtered.map((task,i)=><TaskCard key={task.id} task={task} idx={i} onToggle={()=>handleToggle(task.id)} onEdit={()=>{setEditTask(task);setShowModal(true)}} onDelete={()=>handleDelete(task.id)}/>)}</div>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {showModal&&<TaskModal task={editTask} onClose={()=>{setShowModal(false);setEditTask(null)}} onSave={handleSave}/>}
+        {showModal&&(
+          <TaskModal
+            task={editTask || aiTask}
+            onClose={()=>{setShowModal(false);setEditTask(null);setAiTask(null)}}
+            onSave={handleSave}
+          />
+        )}
 
         {toast&&(
           <div style={{position:'fixed',bottom:22,right:22,padding:'13px 20px',borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,background:toast.type==='success'?'rgba(107,203,119,.1)':'rgba(255,107,107,.1)',border:`1px solid ${toast.type==='success'?'rgba(107,203,119,.3)':'rgba(255,107,107,.3)'}`,color:toast.type==='success'?'var(--success)':'var(--danger)',backdropFilter:'blur(12px)',boxShadow:'0 8px 30px rgba(0,0,0,.4)',animation:'fadeUp .3s ease'}}>
