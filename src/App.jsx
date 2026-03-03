@@ -7,6 +7,9 @@ import Dashboard      from './pages/Dashboard'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword  from './pages/ResetPassword'
 
+import { ThemeProvider } from './context/ThemeContext'
+import ThemePicker from './components/ThemePicker'
+
 function Private({ children }) {
   const { isAuthenticated } = useAuth()
   return isAuthenticated ? children : <Navigate to="/login" replace />
@@ -33,10 +36,13 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+     <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+          <ThemePicker />   {/* ← ADD THIS — shows on every page */}
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
