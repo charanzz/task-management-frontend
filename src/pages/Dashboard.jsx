@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import AIPanel from './AIPanel'
 import AnalyticsPanel from './AnalyticsPanel'
+import TeamsPanel from './TeamsPanel'
+import AdminDashboard from './AdminDashboard'
 
 const PRI = {
   HIGH:   { color:'#ff6b6b', bg:'rgba(255,107,107,0.12)', label:'High',   pts:30, emoji:'🔴' },
@@ -257,10 +259,13 @@ export default function Dashboard() {
   const [aiTask,setAiTask]=useState(null)
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
-  const [activeView,setActiveView]=useState('tasks') // 'tasks' | 'ai' | 'analytics'
+  const [activeView,setActiveView]=useState('tasks')
+  // activeView: 'tasks' | 'analytics' | 'ai' | 'teams' | 'admin'
 
   const {user,logout}=useAuth()
   const navigate=useNavigate()
+
+  const isAdmin = user?.role === 'ADMIN'
 
   const fetchAll=useCallback(async()=>{
     try {
@@ -344,7 +349,11 @@ export default function Dashboard() {
 
   const insightNavBtn=(view,icon,label,badge)=>(
     <button key={view} onClick={()=>setActiveView(view)}
-      style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:activeView===view?'rgba(124,58,237,.1)':'transparent',color:activeView===view?'var(--accent2)':'var(--muted)',border:activeView===view?'1px solid rgba(124,58,237,.2)':'1px solid transparent',cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
+      style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,
+        background:activeView===view?'rgba(124,58,237,.1)':'transparent',
+        color:activeView===view?'var(--accent2)':'var(--muted)',
+        border:activeView===view?'1px solid rgba(124,58,237,.2)':'1px solid transparent',
+        cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
       <span style={{width:18,textAlign:'center'}}>{icon}</span>
       <span style={{flex:1}}>{label}</span>
       {badge&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:6,background:'linear-gradient(135deg,#7c3aed,#a855f7)',color:'#fff',fontWeight:700}}>{badge}</span>}
@@ -361,11 +370,15 @@ export default function Dashboard() {
   const headerTitle = () => {
     if (activeView==='ai')        return <span>🤖 <span style={{color:'var(--accent2)'}}>AI Assistant</span></span>
     if (activeView==='analytics') return <span>📊 <span style={{color:'var(--accent2)'}}>Analytics</span></span>
+    if (activeView==='teams')     return <span>👥 <span style={{color:'var(--accent2)'}}>Teams</span></span>
+    if (activeView==='admin')     return <span>🛡️ <span style={{color:'#ff6b6b'}}>Admin Dashboard</span></span>
     return <>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
   const headerSub = () => {
     if (activeView==='ai')        return 'Powered by Claude AI'
     if (activeView==='analytics') return 'Your productivity insights'
+    if (activeView==='teams')     return 'Collaborate with your team'
+    if (activeView==='admin')     return 'Manage users and platform'
     return new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
   }
 
@@ -376,12 +389,14 @@ export default function Dashboard() {
 
         {sideOpen&&(
           <aside style={{width:240,flexShrink:0,background:'var(--surface)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',height:'100%'}}>
+            {/* Logo */}
             <div style={{display:'flex',alignItems:'center',gap:10,padding:'18px 16px',borderBottom:'1px solid var(--border)'}}>
               <div style={{width:34,height:34,borderRadius:10,background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,color:'#fff',flexShrink:0,boxShadow:'0 4px 14px var(--glow)'}}>⚡</div>
               <span style={{fontSize:17,fontWeight:800,color:'var(--text)',fontFamily:'Syne, sans-serif'}}>TaskFlow</span>
             </div>
 
             <nav style={{flex:1,padding:'12px 10px',overflowY:'auto'}}>
+              {/* Tasks section */}
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'0 8px',marginBottom:6}}>TASKS</p>
               {navItems.map(item=>{
                 const active = activeView==='tasks' && filter===item.key
@@ -395,15 +410,28 @@ export default function Dashboard() {
                 )
               })}
 
+              {/* Insights section */}
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
               {insightNavBtn('analytics','📊','Analytics', null)}
               {insightNavBtn('ai','🤖','AI Assistant','NEW')}
+              {insightNavBtn('teams','👥','Teams', null)}
 
-              {[['🔥','Streaks'],['⚙️','Settings']].map(([ic,lb])=>(
-                <button key={lb} className="nav-btn" style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:'transparent',border:'1px solid transparent',color:'var(--muted)',cursor:'pointer',fontSize:13,textAlign:'left',transition:'background .12s'}}>
-                  <span style={{width:18,textAlign:'center'}}>{ic}</span>{lb}
-                </button>
-              ))}
+              {/* Upgrade to Pro button */}
+              <button onClick={()=>navigate('/pricing')}
+                style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,
+                  background:'rgba(255,217,61,.06)',border:'1px solid rgba(255,217,61,.15)',
+                  color:'var(--warn)',cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
+                <span style={{width:18,textAlign:'center'}}>⭐</span>
+                <span style={{flex:1}}>Upgrade to Pro</span>
+              </button>
+
+              {/* Admin section — only visible to admins */}
+              {isAdmin && (
+                <>
+                  <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>ADMIN</p>
+                  {insightNavBtn('admin','🛡️','Admin Dashboard', null)}
+                </>
+              )}
 
               <LevelBar level={level.level} focusScore={level.focusScore} nextLevelAt={level.nextLevelAt}/>
               <BadgeGrid badges={badges}/>
@@ -415,13 +443,17 @@ export default function Dashboard() {
               )}
             </nav>
 
+            {/* User profile footer */}
             <div style={{padding:'13px 14px',borderTop:'1px solid var(--border)'}}>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
                 <div style={{width:34,height:34,borderRadius:10,flexShrink:0,background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:14,color:'#fff'}}>
                   {(user?.name?.[0]||'U').toUpperCase()}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <p style={{fontSize:13,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user?.name||'User'}</p>
+                  <div style={{display:'flex',alignItems:'center',gap:6'}}>
+                    <p style={{fontSize:13,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user?.name||'User'}</p>
+                    {isAdmin&&<span style={{fontSize:9,padding:'1px 6px',borderRadius:4,background:'rgba(255,107,107,.15)',color:'var(--danger)',fontWeight:700,flexShrink:0}}>ADMIN</span>}
+                  </div>
                   <div style={{display:'flex',alignItems:'center',gap:5,marginTop:2}}>
                     <div style={{width:6,height:6,borderRadius:'50%',background:'var(--success)',boxShadow:'0 0 6px rgba(107,203,119,.6)'}}/>
                     <span style={{fontSize:10,color:'var(--muted)'}}>Lv.{level.level} · Active</span>
@@ -433,6 +465,7 @@ export default function Dashboard() {
           </aside>
         )}
 
+        {/* Main content */}
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           <header style={{flexShrink:0,display:'flex',alignItems:'center',gap:12,padding:'13px 24px',background:'var(--surface)',borderBottom:'1px solid var(--border)'}}>
             <button onClick={()=>setSideOpen(s=>!s)} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>☰</button>
@@ -466,6 +499,10 @@ export default function Dashboard() {
               <AnalyticsPanel/>
             ) : activeView==='ai' ? (
               <AIPanel onTaskParsed={handleAiTaskParsed}/>
+            ) : activeView==='teams' ? (
+              <TeamsPanel/>
+            ) : activeView==='admin' && isAdmin ? (
+              <AdminDashboard/>
             ) : (
               <>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:22}}>
