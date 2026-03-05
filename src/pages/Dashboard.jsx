@@ -4,6 +4,7 @@ import { taskAPI } from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 import AIPanel from './AIPanel'
+import AnalyticsPanel from './AnalyticsPanel'
 
 const PRI = {
   HIGH:   { color:'#ff6b6b', bg:'rgba(255,107,107,0.12)', label:'High',   pts:30, emoji:'🔴' },
@@ -256,7 +257,7 @@ export default function Dashboard() {
   const [aiTask,setAiTask]=useState(null)
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
-  const [activeView,setActiveView]=useState('tasks')
+  const [activeView,setActiveView]=useState('tasks') // 'tasks' | 'ai' | 'analytics'
 
   const {user,logout}=useAuth()
   const navigate=useNavigate()
@@ -341,12 +342,32 @@ export default function Dashboard() {
     </button>
   )
 
+  const insightNavBtn=(view,icon,label,badge)=>(
+    <button key={view} onClick={()=>setActiveView(view)}
+      style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:activeView===view?'rgba(124,58,237,.1)':'transparent',color:activeView===view?'var(--accent2)':'var(--muted)',border:activeView===view?'1px solid rgba(124,58,237,.2)':'1px solid transparent',cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
+      <span style={{width:18,textAlign:'center'}}>{icon}</span>
+      <span style={{flex:1}}>{label}</span>
+      {badge&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:6,background:'linear-gradient(135deg,#7c3aed,#a855f7)',color:'#fff',fontWeight:700}}>{badge}</span>}
+    </button>
+  )
+
   const navItems = [
-    {key:'ALL',   icon:'◈', label:'All Tasks',   count:tasks.length,                                  isTask:true},
-    {key:'TODO',  icon:'○', label:'To Do',        count:tasks.filter(t=>t.status==='TODO').length,     isTask:true},
-    {key:'IN_PROGRESS',icon:'◉',label:'In Progress',count:tasks.filter(t=>t.status==='IN_PROGRESS').length, isTask:true},
-    {key:'DONE',  icon:'✓', label:'Completed',    count:done,                                          isTask:true},
+    {key:'ALL',         icon:'◈', label:'All Tasks',  count:tasks.length},
+    {key:'TODO',        icon:'○', label:'To Do',       count:tasks.filter(t=>t.status==='TODO').length},
+    {key:'IN_PROGRESS', icon:'◉', label:'In Progress', count:tasks.filter(t=>t.status==='IN_PROGRESS').length},
+    {key:'DONE',        icon:'✓', label:'Completed',   count:done},
   ]
+
+  const headerTitle = () => {
+    if (activeView==='ai')        return <span>🤖 <span style={{color:'var(--accent2)'}}>AI Assistant</span></span>
+    if (activeView==='analytics') return <span>📊 <span style={{color:'var(--accent2)'}}>Analytics</span></span>
+    return <>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
+  }
+  const headerSub = () => {
+    if (activeView==='ai')        return 'Powered by Claude AI'
+    if (activeView==='analytics') return 'Your productivity insights'
+    return new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})
+  }
 
   return (
     <>
@@ -375,14 +396,8 @@ export default function Dashboard() {
               })}
 
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-
-              {/* AI Assistant nav item */}
-              <button onClick={()=>setActiveView('ai')}
-                style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:activeView==='ai'?'rgba(124,58,237,.1)':'transparent',color:activeView==='ai'?'var(--accent2)':'var(--muted)',border:activeView==='ai'?'1px solid rgba(124,58,237,.2)':'1px solid transparent',cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s'}}>
-                <span style={{width:18,textAlign:'center'}}>🤖</span>
-                <span style={{flex:1}}>AI Assistant</span>
-                <span style={{fontSize:9,padding:'2px 6px',borderRadius:6,background:'linear-gradient(135deg,#7c3aed,#a855f7)',color:'#fff',fontWeight:700}}>NEW</span>
-              </button>
+              {insightNavBtn('analytics','📊','Analytics', null)}
+              {insightNavBtn('ai','🤖','AI Assistant','NEW')}
 
               {[['🔥','Streaks'],['⚙️','Settings']].map(([ic,lb])=>(
                 <button key={lb} className="nav-btn" style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:10,marginBottom:2,background:'transparent',border:'1px solid transparent',color:'var(--muted)',cursor:'pointer',fontSize:13,textAlign:'left',transition:'background .12s'}}>
@@ -422,16 +437,10 @@ export default function Dashboard() {
           <header style={{flexShrink:0,display:'flex',alignItems:'center',gap:12,padding:'13px 24px',background:'var(--surface)',borderBottom:'1px solid var(--border)'}}>
             <button onClick={()=>setSideOpen(s=>!s)} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:16,display:'flex',alignItems:'center',justifyContent:'center'}}>☰</button>
             <div style={{flex:1}}>
-              <h1 style={{fontSize:15,fontWeight:700,color:'var(--text)',fontFamily:'Syne, sans-serif'}}>
-                {activeView==='ai'
-                  ? <span>🤖 <span style={{color:'var(--accent2)'}}>AI Assistant</span></span>
-                  : <>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>}
-              </h1>
-              <p style={{fontSize:11,color:'var(--muted)',marginTop:1}}>
-                {activeView==='ai' ? 'Powered by Claude AI' : new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
-              </p>
+              <h1 style={{fontSize:15,fontWeight:700,color:'var(--text)',fontFamily:'Syne, sans-serif'}}>{headerTitle()}</h1>
+              <p style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{headerSub()}</p>
             </div>
-            {activeView==='tasks' && (
+            {activeView==='tasks'&&(
               <div style={{position:'relative'}}>
                 <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',fontSize:14,pointerEvents:'none'}}>⌕</span>
                 <input type="text" placeholder="Search tasks…" value={search} onChange={e=>setSearch(e.target.value)}
@@ -443,7 +452,7 @@ export default function Dashboard() {
             {overdueCnt>0&&activeView==='tasks'&&(
               <div style={{padding:'6px 12px',borderRadius:8,background:'rgba(255,107,107,.1)',border:'1px solid rgba(255,107,107,.2)',color:'var(--danger)',fontSize:12,fontWeight:600}}>⚠ {overdueCnt} overdue</div>
             )}
-            {activeView==='tasks' && (
+            {activeView==='tasks'&&(
               <button onClick={()=>{setEditTask(null);setAiTask(null);setShowModal(true)}} style={{padding:'9px 20px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:13,fontWeight:700,boxShadow:'0 4px 14px var(--glow)',transition:'all .2s',flexShrink:0}}
                 onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'}
                 onMouseLeave={e=>e.currentTarget.style.transform='translateY(0)'}>
@@ -453,7 +462,9 @@ export default function Dashboard() {
           </header>
 
           <div style={{flex:1,overflowY:'auto',padding:24}}>
-            {activeView==='ai' ? (
+            {activeView==='analytics' ? (
+              <AnalyticsPanel/>
+            ) : activeView==='ai' ? (
               <AIPanel onTaskParsed={handleAiTaskParsed}/>
             ) : (
               <>
