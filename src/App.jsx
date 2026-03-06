@@ -33,13 +33,14 @@ function JoinTeamPage() {
   const [message, setMessage] = React.useState('')
 
   React.useEffect(() => {
+    if (!token) { setStatus('error'); setMessage('Invalid invite link.'); return }
+
     if (!isAuthenticated) {
-      // Save token to localStorage, redirect to login
-      if (token) localStorage.setItem('pendingTeamToken', token)
-      window.location.href = '/login'
+      // Save token and redirect to login, then come back
+      localStorage.setItem('pendingTeamToken', token)
+      window.location.href = '/login?redirect=/join-team?token=' + token
       return
     }
-    if (!token) { setStatus('error'); setMessage('Invalid invite link.'); return }
 
     api.get(`/api/teams/join?token=${token}`)
       .then(res => {

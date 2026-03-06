@@ -59,6 +59,16 @@ export default function TeamsPanel() {
     finally { setSaving(false) }
   }
 
+  async function deleteTeam(teamId) {
+    if (!confirm('Delete this team? This cannot be undone.')) return
+    try {
+      await api.delete(`/api/teams/${teamId}`)
+      flash('Team deleted')
+      await loadTeams()
+      setView('list')
+    } catch { flash('Failed to delete team','error') }
+  }
+
   async function sendInvite() {
     if (!inviteEmail.trim()||!activeTeam) return
     setSaving(true)

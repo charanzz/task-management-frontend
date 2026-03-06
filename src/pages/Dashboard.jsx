@@ -262,10 +262,21 @@ export default function Dashboard() {
   const [activeView,setActiveView]=useState('tasks')
   // activeView: 'tasks' | 'analytics' | 'ai' | 'teams' | 'admin'
 
-  const {user,logout}=useAuth()
+  const {user,login,logout}=useAuth()
   const navigate=useNavigate()
 
-  const isAdmin = user?.role === 'ADMIN'
+  const [roleFromApi, setRoleFromApi] = useState(user?.role || 'USER')
+  useEffect(() => {
+    api.get('/api/users/me').then(r => {
+      const role = r.data.role || 'USER'
+      setRoleFromApi(role)
+      if (user) {
+        login(localStorage.getItem('token'), {...user, role, isPro: r.data.isPro})
+      }
+    }).catch(() => {})
+  }, [])
+
+  const isAdmin = roleFromApi === 'ADMIN'
 
   const fetchAll=useCallback(async()=>{
     try {
