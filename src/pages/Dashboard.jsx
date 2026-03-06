@@ -42,6 +42,45 @@ const css = `
   ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
   button{cursor:pointer;font-family:'DM Sans',sans-serif} input,textarea,select{font-family:'DM Sans',sans-serif}
   .nav-btn:hover { background: var(--surface2) !important; }
+
+  /* ── Mobile overlay sidebar ── */
+  .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:99; backdrop-filter:blur(4px); }
+  @media(max-width:768px) {
+    .sidebar-overlay.open { display:block; }
+    .sidebar-mobile { position:fixed !important; left:0; top:0; bottom:0; z-index:100; transform:translateX(-100%); transition:transform .25s ease; }
+    .sidebar-mobile.open { transform:translateX(0) !important; }
+    .stat-grid { grid-template-columns: 1fr 1fr !important; gap:10px !important; }
+    .filter-row { flex-wrap:wrap !important; gap:6px !important; }
+    .filter-row button { font-size:11px !important; padding:6px 10px !important; }
+    .task-card-status { display:none !important; }
+    .header-search { display:none !important; }
+    .mobile-fab { display:flex !important; }
+  }
+  /* FAB button (mobile new task) */
+  .mobile-fab {
+    display:none;
+    position:fixed; bottom:24px; right:24px; z-index:50;
+    width:54px; height:54px; border-radius:16px;
+    background:linear-gradient(135deg,#7c3aed,#a855f7);
+    color:#fff; font-size:24px; font-weight:300;
+    align-items:center; justify-content:center;
+    box-shadow:0 8px 24px rgba(124,58,237,.5);
+    border:none; cursor:pointer;
+    transition:transform .15s;
+  }
+  .mobile-fab:active { transform:scale(.93); }
+
+  /* Mobile bottom nav */
+  .mobile-bottom-nav {
+    display:none;
+    position:fixed; bottom:0; left:0; right:0; z-index:50;
+    background:var(--surface); border-top:1px solid var(--border);
+    padding:8px 0 env(safe-area-inset-bottom,8px);
+  }
+  @media(max-width:768px) {
+    .mobile-bottom-nav { display:flex; }
+    .main-content-pad { padding-bottom:80px !important; }
+  }
 `
 
 function Spinner({ size=16 }) {
@@ -134,7 +173,7 @@ function TaskCard({ task, onToggle, onEdit, onDelete, idx }) {
         {task.description&&<p style={{fontSize:11,color:'var(--muted)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{task.description}</p>}
       </div>
       {due&&<span style={{fontSize:11,color:due.color,flexShrink:0,whiteSpace:'nowrap'}}>{due.text}</span>}
-      <span style={{fontSize:10,fontWeight:600,padding:'3px 10px',borderRadius:20,background:`${scfg.color}18`,color:scfg.color,border:`1px solid ${scfg.color}30`,flexShrink:0}}>{scfg.emoji} {scfg.label}</span>
+      <span className="task-card-status" style={{fontSize:10,fontWeight:600,padding:'3px 10px',borderRadius:20,background:`${scfg.color}18`,color:scfg.color,border:`1px solid ${scfg.color}30`,flexShrink:0}}>{scfg.emoji} {scfg.label}</span>
       <span style={{fontSize:10,fontWeight:700,letterSpacing:'1px',textTransform:'uppercase',padding:'3px 10px',borderRadius:7,background:cfg.bg,color:cfg.color,flexShrink:0}}>{cfg.label}</span>
       <span style={{fontSize:12,fontWeight:700,color:cfg.color,minWidth:34,textAlign:'right',fontFamily:'Syne, sans-serif',flexShrink:0}}>+{cfg.pts}</span>
       <div style={{display:'flex',gap:5,opacity:hover?1:0,transition:'opacity .15s',flexShrink:0}}>
@@ -398,8 +437,11 @@ export default function Dashboard() {
       <style>{css}</style>
       <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)',fontFamily:'DM Sans, sans-serif'}}>
 
+        {/* Mobile overlay */}
+        {sideOpen&&<div className="sidebar-overlay open" onClick={()=>setSideOpen(false)}/>}
+
         {sideOpen&&(
-          <aside style={{width:240,flexShrink:0,background:'var(--surface)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',height:'100%'}}>
+          <aside className="sidebar-mobile open" style={{width:240,flexShrink:0,background:'var(--surface)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',height:'100%'}}>
             {/* Logo */}
             <div style={{display:'flex',alignItems:'center',gap:10,padding:'18px 16px',borderBottom:'1px solid var(--border)'}}>
               <div style={{width:34,height:34,borderRadius:10,background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,color:'#fff',flexShrink:0,boxShadow:'0 4px 14px var(--glow)'}}>⚡</div>
@@ -485,7 +527,7 @@ export default function Dashboard() {
               <p style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{headerSub()}</p>
             </div>
             {activeView==='tasks'&&(
-              <div style={{position:'relative'}}>
+              <div className="header-search" style={{position:'relative'}}>
                 <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',fontSize:14,pointerEvents:'none'}}>⌕</span>
                 <input type="text" placeholder="Search tasks…" value={search} onChange={e=>setSearch(e.target.value)}
                   style={{paddingLeft:34,paddingRight:14,paddingTop:8,paddingBottom:8,borderRadius:10,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',fontSize:13,outline:'none',width:200,transition:'border-color .2s'}}
@@ -505,7 +547,7 @@ export default function Dashboard() {
             )}
           </header>
 
-          <div style={{flex:1,overflowY:'auto',padding:24}}>
+          <div className="main-content-pad" style={{flex:1,overflowY:'auto',padding:24}}>
             {activeView==='analytics' ? (
               <AnalyticsPanel/>
             ) : activeView==='ai' ? (
@@ -516,13 +558,13 @@ export default function Dashboard() {
               <AdminDashboard/>
             ) : (
               <>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:22}}>
+                <div className="stat-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:22}}>
                   <StatCard label="Completed"   value={stats?.completedTasks??done}  sub={`of ${tasks.length} total`}  color="var(--success)" icon="✓"  delay={0}/>
                   <StatCard label="Focus Score" value={stats?.focusScore??0}          sub="points earned"               color="var(--accent2)" icon="⚡" delay={80}/>
                   <StatCard label="Day Streak"  value={stats?.streak??0}              sub="consecutive days"            color="var(--warn)"    icon="🔥" delay={160}/>
                   <StatCard label="Pending"     value={pending}                        sub={`${high} high priority`}    color="var(--danger)"  icon="⏳" delay={240}/>
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+                <div className="filter-row" style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
                   {filterBtn('ALL','All Tasks',tasks.length)}
                   {filterBtn('TODO','To Do',tasks.filter(t=>t.status==='TODO').length)}
                   {filterBtn('IN_PROGRESS','In Progress',tasks.filter(t=>t.status==='IN_PROGRESS').length)}
@@ -554,8 +596,39 @@ export default function Dashboard() {
           />
         )}
 
+        {/* Mobile FAB - new task */}
+        {activeView==='tasks'&&(
+          <button className="mobile-fab" onClick={()=>{setEditTask(null);setAiTask(null);setShowModal(true)}}>+</button>
+        )}
+
+        {/* Mobile bottom navigation */}
+        <nav className="mobile-bottom-nav" style={{justifyContent:'space-around',alignItems:'center'}}>
+          {[
+            {view:'tasks', icon:'📋', label:'Tasks'},
+            {view:'analytics', icon:'📊', label:'Stats'},
+            {view:'ai', icon:'🤖', label:'AI'},
+            {view:'teams', icon:'👥', label:'Teams'},
+          ].map(({view,icon,label})=>(
+            <button key={view} onClick={()=>{setActiveView(view);setSideOpen(false)}}
+              style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'6px 12px',
+                background:'none',border:'none',
+                color:activeView===view?'var(--accent2)':'var(--muted)',
+                fontSize:10,fontWeight:activeView===view?700:400,cursor:'pointer',transition:'color .15s'}}>
+              <span style={{fontSize:20}}>{icon}</span>
+              <span>{label}</span>
+              {activeView===view&&<div style={{width:4,height:4,borderRadius:'50%',background:'var(--accent2)'}}/>}
+            </button>
+          ))}
+          <button onClick={()=>{logout();navigate('/login')}}
+            style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,padding:'6px 12px',
+              background:'none',border:'none',color:'var(--muted)',fontSize:10,cursor:'pointer'}}>
+            <span style={{fontSize:20}}>⏻</span>
+            <span>Logout</span>
+          </button>
+        </nav>
+
         {toast&&(
-          <div style={{position:'fixed',bottom:22,right:22,padding:'13px 20px',borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,background:toast.type==='success'?'rgba(107,203,119,.1)':'rgba(255,107,107,.1)',border:`1px solid ${toast.type==='success'?'rgba(107,203,119,.3)':'rgba(255,107,107,.3)'}`,color:toast.type==='success'?'var(--success)':'var(--danger)',backdropFilter:'blur(12px)',boxShadow:'0 8px 30px rgba(0,0,0,.4)',animation:'fadeUp .3s ease'}}>
+          <div style={{position:'fixed',bottom:80,right:16,padding:'13px 20px',borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,background:toast.type==='success'?'rgba(107,203,119,.1)':'rgba(255,107,107,.1)',border:`1px solid ${toast.type==='success'?'rgba(107,203,119,.3)':'rgba(255,107,107,.3)'}`,color:toast.type==='success'?'var(--success)':'var(--danger)',backdropFilter:'blur(12px)',boxShadow:'0 8px 30px rgba(0,0,0,.4)',animation:'fadeUp .3s ease'}}>
             {toast.msg}
           </div>
         )}
