@@ -6,6 +6,7 @@ import AIPanel from './AIPanel'
 import AnalyticsPanel from './AnalyticsPanel'
 import TeamsPanel from './TeamsPanel'
 import AdminDashboard from './AdminDashboard'
+import NotificationBell from './NotificationBell'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -711,6 +712,7 @@ export default function Dashboard(){
               <h1 style={{fontSize:15,fontWeight:700,color:'var(--text)',fontFamily:'Syne,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerTitle()}</h1>
               <p style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</p>
             </div>
+            <NotificationBell />
             {view==='tasks'&&(
               <>
                 <div className="header-search" style={{position:'relative'}}>
