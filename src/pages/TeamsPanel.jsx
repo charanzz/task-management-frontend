@@ -295,7 +295,7 @@ export default function TeamsPanel() {
                 <p style={{fontSize:11,color:'var(--muted)',margin:0}}>{activeTeam.memberCount} member{activeTeam.memberCount!==1?'s':''} · {activeTeam.myRole}</p>
               </div>
               {/* Action buttons */}
-              <div style={{display:'flex',gap:8'}}>
+              <div style={{display:'flex',gap:8}}>
                 {isOwner ? (
                   <button onClick={deleteTeam}
                     style={{padding:'7px 14px',borderRadius:9,fontSize:12,fontWeight:600,cursor:'pointer',
