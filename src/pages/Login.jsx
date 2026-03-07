@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { authAPI } from '../services/api'
 
@@ -39,6 +39,8 @@ export default function Login() {
 
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const joinToken = searchParams.get('joinToken')
 
   useEffect(() => {
     if (!googleConfigured) return
@@ -62,7 +64,11 @@ export default function Login() {
       const res = await authAPI.login({ email: form.email.trim(), password: form.password })
       const { token, email, name, id } = res.data
       login(token, { id, name, email })
-      navigate('/dashboard')
+      if (joinToken) {
+        navigate(`/join-team?token=${encodeURIComponent(joinToken)}`)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password')
     } finally {
@@ -85,7 +91,11 @@ export default function Login() {
           const res = await authAPI.googleLogin({ idToken: response.credential })
           const { token, email, name, id } = res.data
           login(token, { id, name, email })
-          navigate('/dashboard')
+          if (joinToken) {
+            navigate(`/join-team?token=${encodeURIComponent(joinToken)}`)
+          } else {
+            navigate('/dashboard')
+          }
         } catch (err) {
           setError(err.response?.data?.message || 'Google Sign-In failed. Try email login.')
         } finally {
