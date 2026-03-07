@@ -26,8 +26,7 @@ function Avatar({name,size=28,color}){
   return <div style={{width:size,height:size,borderRadius:size*.28,background:`linear-gradient(135deg,${bg},${bg}bb)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.4,fontWeight:800,color:'#fff',flexShrink:0}}>{(name?.[0]||'?').toUpperCase()}</div>
 }
 
-// Simple in-memory chat store (resets on refresh — good enough without a backend chat API)
-const chatStore = {}
+// No more in-memory store — uses real backend API
 
 export default function TeamsPanel() {
   const { user } = useAuth()
@@ -63,11 +62,24 @@ export default function TeamsPanel() {
     if(tab==='chat') msgEndRef.current?.scrollIntoView({behavior:'smooth'})
   },[messages, tab])
 
-  // Load chat messages when switching to chat tab
+  // Load chat messages when switching to chat tab (real API)
   useEffect(()=>{
     if(tab==='chat' && activeTeam) {
-      setMessages(chatStore[activeTeam.id] || [])
+      api.get(`/api/teams/${activeTeam.id}/messages`)
+        .then(r => setMessages(Array.isArray(r.data) ? r.data : []))
+        .catch(() => setMessages([]))
     }
+  },[tab, activeTeam])
+
+  // Poll for new messages every 4s
+  useEffect(()=>{
+    if(tab!=='chat' || !activeTeam) return
+    const id = setInterval(() => {
+      api.get(`/api/teams/${activeTeam.id}/messages`)
+        .then(r => setMessages(Array.isArray(r.data) ? r.data : []))
+        .catch(() => {})
+    }, 4000)
+    return () => clearInterval(id)
   },[tab, activeTeam])
 
   async function loadTeamTasks(teamId) {
@@ -135,20 +147,16 @@ export default function TeamsPanel() {
     finally { setSaving(false) }
   }
 
-  function sendMessage() {
+  async function sendMessage() {
     if (!msgText.trim() || !activeTeam) return
-    const msg = {
-      id: Date.now(),
-      text: msgText.trim(),
-      sender: user?.name || 'You',
-      senderEmail: user?.email,
-      time: new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),
-      isMe: true,
-    }
-    const updated = [...(chatStore[activeTeam.id]||[]), msg]
-    chatStore[activeTeam.id] = updated
-    setMessages(updated)
+    const text = msgText.trim()
     setMsgText('')
+    try {
+      const r = await api.post(`/api/teams/${activeTeam.id}/messages`, { text })
+      setMessages(p => [...p, r.data])
+    } catch {
+      flash('Failed to send message', 'error')
+    }
   }
 
   function openTeam(team) {
@@ -329,9 +337,9 @@ export default function TeamsPanel() {
                     border:tab===key?'none':'1px solid var(--border)',transition:'all .15s',
                     display:'flex',alignItems:'center',gap:6}}>
                   {ic} {lb}
-                  {key==='chat'&&(chatStore[activeTeam.id]||[]).length>0&&(
+                  {key==='chat'&&messages.length>0&&(
                     <span style={{fontSize:9,padding:'1px 5px',borderRadius:5,background:'rgba(255,255,255,.15)',color:'#fff'}}>
-                      {(chatStore[activeTeam.id]||[]).length}
+                      {messages.length}
                     </span>
                   )}
                 </button>
@@ -445,19 +453,25 @@ export default function TeamsPanel() {
                       <p style={{fontSize:14,fontWeight:700,color:'var(--text)',margin:0}}>No messages yet</p>
                       <p style={{fontSize:12,color:'var(--muted)',margin:0}}>Start the conversation with your team!</p>
                     </div>
-                  ) : messages.map(msg=>(
-                    <div key={msg.id} style={{display:'flex',gap:10,flexDirection:msg.isMe?'row-reverse':'row',animation:'msgIn .25s ease'}}>
-                      <Avatar name={msg.sender} size={32}/>
+                  ) : messages.map(msg=>{
+                    const isMe = msg.sender?.email === user?.email || msg.sender?.id === user?.id
+                    const senderName = msg.sender?.name || 'User'
+                    const timeStr = msg.sentAt ? new Date(msg.sentAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) : ''
+                    return(
+                    <div key={msg.id} style={{display:'flex',gap:10,flexDirection:isMe?'row-reverse':'row',animation:'msgIn .25s ease'}}>
+                      <div style={{width:32,height:32,borderRadius:9,background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:13,color:'#fff',flexShrink:0}}>
+                        {(senderName?.[0]||'?').toUpperCase()}
+                      </div>
                       <div style={{maxWidth:'70%'}}>
-                        <p style={{fontSize:10,color:'var(--muted)',margin:'0 0 4px',textAlign:msg.isMe?'right':'left'}}>{msg.sender} · {msg.time}</p>
-                        <div style={{padding:'10px 14px',borderRadius:msg.isMe?'14px 4px 14px 14px':'4px 14px 14px 14px',
-                          background:msg.isMe?'linear-gradient(135deg,var(--accent),var(--accent2))':'var(--surface2)',
-                          border:msg.isMe?'none':'1px solid var(--border)'}}>
-                          <p style={{fontSize:13,color:'#fff',margin:0,lineHeight:1.5,wordBreak:'break-word'}}>{msg.text}</p>
+                        <p style={{fontSize:10,color:'var(--muted)',margin:'0 0 4px',textAlign:isMe?'right':'left'}}>{senderName} · {timeStr}</p>
+                        <div style={{padding:'10px 14px',borderRadius:isMe?'14px 4px 14px 14px':'4px 14px 14px 14px',
+                          background:isMe?'linear-gradient(135deg,var(--accent),var(--accent2))':'var(--surface2)',
+                          border:isMe?'none':'1px solid var(--border)'}}>
+                          <p style={{fontSize:13,color:isMe?'#fff':'var(--text)',margin:0,lineHeight:1.5,wordBreak:'break-word'}}>{msg.text}</p>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                   <div ref={msgEndRef}/>
                 </div>
 
