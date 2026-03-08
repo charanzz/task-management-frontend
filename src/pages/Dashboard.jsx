@@ -10,6 +10,9 @@ import NotificationBell from './NotificationBell'
 import ProfilePage from './ProfilePage'
 import DailyFocus from './DailyFocus'
 import WeeklyReview from './WeeklyReview'
+import PomodoroTimer from './PomodoroTimer'
+import Leaderboard from './Leaderboard'
+import OnboardingWizard from './OnboardingWizard'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -536,6 +539,7 @@ export default function Dashboard(){
   const [editTask,setEditTask]=useState(null)
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
+  const [showOnboarding,setShowOnboarding]=useState(false)
   const [view,setView]=useState('tasks')
   const [viewMode,setViewMode]=useState('list')
   const [roleFromApi,setRoleFromApi]=useState('USER')
@@ -547,6 +551,13 @@ export default function Dashboard(){
       setRoleFromApi(r.data.role||'USER')
       if(user) login(localStorage.getItem('token'),{...user,role:r.data.role,isPro:r.data.isPro})
     }).catch(()=>{})
+  },[])
+
+  // Onboarding check
+  useEffect(()=>{
+    api.get('/api/users/onboarding-status')
+      .then(r=>{ if(!r.data.done) setShowOnboarding(true) })
+      .catch(()=>{})
   },[])
 
   const isAdmin=roleFromApi==='ADMIN'
@@ -636,6 +647,8 @@ export default function Dashboard(){
     if(view==='profile')return<>👤 <span style={{color:'var(--accent2)'}}>My Profile</span></>
     if(view==='focus')return<>🎯 <span style={{color:'var(--accent2)'}}>Daily Focus</span></>
     if(view==='weekly')return<>📊 <span style={{color:'var(--accent2)'}}>Weekly Review</span></>
+    if(view==='pomodoro')return<>⏱ <span style={{color:'var(--accent2)'}}>Pomodoro Timer</span></>
+    if(view==='leaderboard')return<>🏆 <span style={{color:'var(--accent2)'}}>Leaderboard</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -673,7 +686,7 @@ export default function Dashboard(){
               })}
 
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['focus','🎯','Daily Focus','NEW'],['analytics','📊','Analytics',null],['weekly','📊','Weekly Review',null],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
+              {[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['analytics','📊','Analytics',null],['weekly','📊','Weekly Review',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
                 <button key={v} className="nav-item" onClick={()=>setView(v)}
                   style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
                     background:view===v?'rgba(124,58,237,.1)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',
@@ -800,6 +813,8 @@ export default function Dashboard(){
           <div className="main-pad" style={{flex:1,overflowY:'auto',padding:22}}>
             {view==='focus'?<DailyFocus onNavigateToTasks={()=>setView('tasks')}/>
             :view==='weekly'?<WeeklyReview/>
+            :view==='pomodoro'?<PomodoroTimer tasks={tasks} onSessionComplete={()=>loadTasks&&loadTasks()}/>
+            :view==='leaderboard'?<Leaderboard/>
             :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
@@ -858,9 +873,12 @@ export default function Dashboard(){
         {/* Mobile FAB */}
         {view==='tasks'&&<button className="fab" onClick={openNew}>+</button>}
 
+        {/* Onboarding wizard */}
+        {showOnboarding&&<OnboardingWizard onComplete={()=>{setShowOnboarding(false)}} />}
+
         {/* Mobile bottom nav */}
         <nav className="bnav" style={{justifyContent:'space-around',alignItems:'center'}}>
-          {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['analytics','📊','Stats'],['teams','👥','Teams'],['profile','👤','Me']].map(([v,ic,lb])=>(
+          {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['pomodoro','⏱','Timer'],['leaderboard','🏆','Ranks'],['profile','👤','Me']].map(([v,ic,lb])=>(
             <button key={v} className="bnav-btn" onClick={()=>{setView(v);setSideOpen(false)}}
               style={{color:view===v?'var(--accent2)':'var(--muted)',fontWeight:view===v?700:400}}>
               <span style={{fontSize:20,lineHeight:1,display:'block',
