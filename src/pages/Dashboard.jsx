@@ -618,7 +618,7 @@ export default function Dashboard(){
               })}
 
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['analytics','📊','Analytics',null],['ai','🤖','AI Assistant','NEW'],['teams','👥','Teams',null],['profile','👤','My Profile',null]].map(([v,ic,lb,badge])=>(
+              {[['analytics','📊','Analytics',null],['ai','🤖','AI Assistant','NEW'],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
                 <button key={v} className="nav-item" onClick={()=>setView(v)}
                   style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
                     background:view===v?'rgba(124,58,237,.1)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',
@@ -688,10 +688,10 @@ export default function Dashboard(){
             {/* Profile */}
             <div style={{padding:'12px 13px',borderTop:'1px solid var(--border)'}}>
               <div style={{display:'flex',alignItems:'center',gap:9}}>
-                <Avatar name={user?.name} size={34}/>
+                <div onClick={()=>setView('profile')} style={{cursor:'pointer'}} title="My Profile"><Avatar name={user?.name} size={34}/></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:5}}>
-                    <p style={{fontSize:13,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',margin:0}}>{user?.name||'User'}</p>
+                    <p onClick={()=>setView('profile')} style={{fontSize:13,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',margin:0,cursor:'pointer'}}>{user?.name||'User'}</p>
                     {isAdmin&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'rgba(255,107,107,.15)',color:'var(--danger)',fontWeight:700,flexShrink:0}}>ADMIN</span>}
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
@@ -699,8 +699,6 @@ export default function Dashboard(){
                     <span style={{fontSize:10,color:'var(--muted)'}}>Lv.{lvl.level} Active</span>
                   </div>
                 </div>
-                <button onClick={()=>setView('profile')} title="Profile"
-                  style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>👤</button>
                 <button onClick={()=>{logout();navigate('/login')}} title="Logout" style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>⏻</button>
               </div>
             </div>
