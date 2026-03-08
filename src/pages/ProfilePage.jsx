@@ -18,6 +18,10 @@ const TIMEZONES = [
 const LVL_NAMES = ['','Novice','Apprentice','Achiever','Hustler','Warrior','Champion','Master','Elite','Legend','God Mode']
 
 const css = `
+  @media(max-width:768px){
+    .profile-stat-grid{grid-template-columns:1fr 1fr!important}
+    .profile-hero-stats{display:none!important}
+  }
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
   @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -200,7 +204,7 @@ export default function ProfilePage(){
         </div>
 
         {/* ── Stat cards row ── */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:22}}>
+        <div className='profile-stat-grid' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:22}}>
           {[
             {label:'Total Tasks',value:profile?.totalTasks||0,color:'#60a5fa',icon:'📋'},
             {label:'Completed',value:profile?.completedTasks||0,color:'#6bcb77',icon:'✅'},

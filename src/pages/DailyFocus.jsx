@@ -110,7 +110,7 @@ export default function DailyFocus({ onNavigateToTasks }) {
 
         {/* Streak + score banner */}
         {!loading && data && (
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24,animation:'fadeUp .4s ease .1s both'}}>
+          <div className='focus-stats-grid' style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:24,animation:'fadeUp .4s ease .1s both'}}>
             {[
               {icon:'🔥',label:'Day Streak',value:data.streak,color:'#ffd93d',sub:data.streak>0?'Keep it up!':'Complete a task!'},
               {icon:'⚡',label:'Focus Score',value:data.focusScore,color:'#a855f7',sub:'Total points earned'},

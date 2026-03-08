@@ -50,20 +50,49 @@ const G = `
   .cal-day:hover{background:var(--surface2)!important}
   .nav-item:hover{background:var(--surface2)!important}
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;backdrop-filter:blur(4px)}
+  /* ── FAB ── */
+  .fab{display:none;position:fixed;bottom:86px;right:18px;z-index:50;width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:26px;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(124,58,237,.55);border:none;cursor:pointer;transition:transform .15s}
+  .fab:active{transform:scale(.93)!important}
+  /* ── Bottom nav ── */
+  .bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);padding:6px 0 env(safe-area-inset-bottom,6px);backdrop-filter:blur(20px)}
+  .bnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;background:none;border:none;cursor:pointer;flex:1;position:relative;transition:all .15s}
+  .bnav-btn:active{opacity:.7}
+  .bnav-dot{width:4px;height:4px;border-radius:50%;background:var(--accent2);position:absolute;bottom:2px}
+  /* ── Mobile overrides ── */
   @media(max-width:768px){
     .sidebar-overlay.open{display:block}
-    .sidebar{position:fixed!important;left:0;top:0;bottom:0;z-index:100;transform:translateX(-100%);transition:transform .25s ease!important}
+    .sidebar{position:fixed!important;left:0;top:0;bottom:0;z-index:100;transform:translateX(-100%);transition:transform .25s ease!important;width:260px!important}
     .sidebar.open{transform:translateX(0)!important}
-    .stat-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
+    .stat-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
     .header-search{display:none!important}
     .fab{display:flex!important}
     .kgrid{grid-template-columns:1fr!important}
     .task-form-grid{grid-template-columns:1fr!important}
-    .main-pad{padding-bottom:80px!important}
+    .main-pad{padding:12px!important;padding-bottom:90px!important}
+    .bnav{display:flex!important}
+    /* Task rows on mobile */
+    .task-card-status{display:none!important}
+    /* Modal full screen on mobile */
+    .modal-box{max-width:100%!important;max-height:100%!important;border-radius:0!important;height:100%!important}
+    /* Header compact */
+    .header-date{display:none!important}
+    /* Filter bar scroll */
+    .filter-bar{overflow-x:auto!important;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .filter-bar::-webkit-scrollbar{display:none}
+    /* Focus/review pages */
+    .focus-stats-grid{grid-template-columns:1fr 1fr!important}
+    .weekly-stats-grid{grid-template-columns:1fr 1fr!important}
+    /* Profile stats */
+    .profile-stat-grid{grid-template-columns:1fr 1fr!important}
+    /* Kanban horizontal scroll */
+    .kgrid{display:flex!important;overflow-x:auto!important;gap:12px!important;padding-bottom:8px!important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .kgrid::-webkit-scrollbar{display:none}
+    .kgrid>div{min-width:260px!important;flex-shrink:0!important}
   }
-  .fab{display:none;position:fixed;bottom:80px;right:20px;z-index:50;width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:24px;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(124,58,237,.5);border:none;cursor:pointer}
-  .bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);padding:8px 0 env(safe-area-inset-bottom,8px)}
-  @media(max-width:768px){.bnav{display:flex}.main-pad{padding-bottom:80px!important}}
+  @media(max-width:480px){
+    .main-pad{padding:8px!important;padding-bottom:90px!important}
+    .stat-grid{grid-template-columns:1fr 1fr!important}
+  }
 `
 
 // ── Tiny helpers ─────────────────────────────────────────────
@@ -201,7 +230,7 @@ function TaskModal({task,onClose,onSave,me}){
 
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',backdropFilter:'blur(10px)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div style={{width:'100%',maxWidth:560,maxHeight:'90vh',background:'var(--surface)',border:'1px solid var(--border2)',borderRadius:22,overflow:'hidden',boxShadow:'0 30px 80px rgba(0,0,0,.8)',animation:'modalIn .25s ease',display:'flex',flexDirection:'column'}}>
+      <div className="modal-box" style={{width:'100%',maxWidth:560,maxHeight:'90vh',background:'var(--surface)',border:'1px solid var(--border2)',borderRadius:22,overflow:'hidden',boxShadow:'0 30px 80px rgba(0,0,0,.8)',animation:'modalIn .25s ease',display:'flex',flexDirection:'column'}}>
         
         {/* Header */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'1px solid var(--border)',background:'linear-gradient(135deg,rgba(124,58,237,.07),transparent)',flexShrink:0}}>
@@ -738,7 +767,7 @@ export default function Dashboard(){
             <button onClick={()=>setSideOpen(s=>!s)} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>☰</button>
             <div style={{flex:1,minWidth:0}}>
               <h1 style={{fontSize:15,fontWeight:700,color:'var(--text)',fontFamily:'Syne,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerTitle()}</h1>
-              <p style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</p>
+              <p className="header-date" style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</p>
             </div>
             <NotificationBell />
             {view==='tasks'&&(
@@ -831,15 +860,15 @@ export default function Dashboard(){
 
         {/* Mobile bottom nav */}
         <nav className="bnav" style={{justifyContent:'space-around',alignItems:'center'}}>
-          {[['tasks','📋','Tasks'],['analytics','📊','Stats'],['ai','🤖','AI'],['teams','👥','Teams']].map(([v,ic,lb])=>(
-            <button key={v} onClick={()=>{setView(v);setSideOpen(false)}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'5px 12px',background:'none',border:'none',color:view===v?'var(--accent2)':'var(--muted)',fontSize:10,fontWeight:view===v?700:400,cursor:'pointer'}}>
-              <span style={{fontSize:19}}>{ic}</span><span>{lb}</span>
-              {view===v&&<div style={{width:4,height:4,borderRadius:'50%',background:'var(--accent2)'}}/>}
+          {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['analytics','📊','Stats'],['teams','👥','Teams'],['profile','👤','Me']].map(([v,ic,lb])=>(
+            <button key={v} className="bnav-btn" onClick={()=>{setView(v);setSideOpen(false)}}
+              style={{color:view===v?'var(--accent2)':'var(--muted)',fontWeight:view===v?700:400}}>
+              <span style={{fontSize:20,lineHeight:1,display:'block',
+                transform:view===v?'translateY(-1px)':'none',transition:'transform .15s'}}>{ic}</span>
+              <span style={{fontSize:9,letterSpacing:'.3px'}}>{lb}</span>
+              {view===v&&<div className="bnav-dot"/>}
             </button>
           ))}
-          <button onClick={()=>{logout();navigate('/login')}} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:2,padding:'5px 12px',background:'none',border:'none',color:'var(--muted)',fontSize:10,cursor:'pointer'}}>
-            <span style={{fontSize:19}}>⏻</span><span>Logout</span>
-          </button>
         </nav>
 
         {/* Task Modal */}

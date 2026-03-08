@@ -106,7 +106,7 @@ export default function WeeklyReview() {
         </div>
 
         {/* Stats grid */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
+        <div className='weekly-stats-grid' style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
           <StatCard icon="✅" value={data.completedThisWeek} label="Done This Week"   color="#6bcb77" delay={0}   sub="tasks completed"/>
           <StatCard icon="⭐" value={data.highPriorityDone}  label="High Priority"    color="#a855f7" delay={0.1} sub="done this week"/>
           <StatCard icon="⚡" value={data.focusScore}        label="Focus Score"      color="#60a5fa" delay={0.2} sub="total points"/>
