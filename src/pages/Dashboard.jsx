@@ -7,6 +7,7 @@ import AnalyticsPanel from './AnalyticsPanel'
 import TeamsPanel from './TeamsPanel'
 import AdminDashboard from './AdminDashboard'
 import NotificationBell from './NotificationBell'
+import ProfilePage from './ProfilePage'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -579,6 +580,7 @@ export default function Dashboard(){
     if(view==='analytics')return<>📊 <span style={{color:'var(--accent2)'}}>Analytics</span></>
     if(view==='teams')return<>👥 <span style={{color:'var(--accent2)'}}>Teams</span></>
     if(view==='admin')return<>🛡️ <span style={{color:'var(--danger)'}}>Admin</span></>
+    if(view==='profile')return<>👤 <span style={{color:'var(--accent2)'}}>My Profile</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -616,7 +618,7 @@ export default function Dashboard(){
               })}
 
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['analytics','📊','Analytics',null],['ai','🤖','AI Assistant','NEW'],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
+              {[['analytics','📊','Analytics',null],['ai','🤖','AI Assistant','NEW'],['teams','👥','Teams',null],['profile','👤','My Profile',null]].map(([v,ic,lb,badge])=>(
                 <button key={v} className="nav-item" onClick={()=>setView(v)}
                   style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
                     background:view===v?'rgba(124,58,237,.1)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',
@@ -697,6 +699,8 @@ export default function Dashboard(){
                     <span style={{fontSize:10,color:'var(--muted)'}}>Lv.{lvl.level} Active</span>
                   </div>
                 </div>
+                <button onClick={()=>setView('profile')} title="Profile"
+                  style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>👤</button>
                 <button onClick={()=>{logout();navigate('/login')}} title="Logout" style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>⏻</button>
               </div>
             </div>
@@ -741,7 +745,8 @@ export default function Dashboard(){
 
           {/* Content */}
           <div className="main-pad" style={{flex:1,overflowY:'auto',padding:22}}>
-            {view==='analytics'?<AnalyticsPanel/>
+            {view==='profile'?<ProfilePage/>
+            :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
             :view==='teams'?<TeamsPanel/>
             :view==='admin'&&isAdmin?<AdminDashboard/>
