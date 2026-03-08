@@ -8,6 +8,8 @@ import TeamsPanel from './TeamsPanel'
 import AdminDashboard from './AdminDashboard'
 import NotificationBell from './NotificationBell'
 import ProfilePage from './ProfilePage'
+import DailyFocus from './DailyFocus'
+import WeeklyReview from './WeeklyReview'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -160,7 +162,29 @@ function TaskModal({task,onClose,onSave,me}){
   })
   const [saving,setSaving]=useState(false)
   const [tab,setTab]=useState('details')
+  const [nlpInput,setNlpInput]=useState('')
+  const [nlpLoading,setNlpLoading]=useState(false)
+  const [nlpActive,setNlpActive]=useState(false)
   const set=(k,v)=>setF(p=>({...p,[k]:v}))
+
+  async function parseNlp(){
+    if(!nlpInput.trim()) return
+    setNlpLoading(true)
+    try{
+      const res = await import('../services/api').then(m=>m.default.post('/api/ai/parse-task',{input:nlpInput}))
+      const d = res.data
+      setF(p=>({...p,
+        title: d.title||p.title,
+        description: d.description||p.description,
+        priority: d.priority||p.priority,
+        dueDate: d.dueDate?d.dueDate.split('T')[0]:p.dueDate,
+        dueTime: d.dueDate?d.dueDate.split('T')[1]?.slice(0,5)||'09:00':p.dueTime,
+      }))
+      setNlpInput('')
+      setNlpActive(false)
+    }catch(e){console.error(e)}
+    finally{setNlpLoading(false)}
+  }
 
   useEffect(()=>{const h=e=>{if(e.key==='Escape')onClose()};window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h)},[onClose])
 
@@ -581,6 +605,8 @@ export default function Dashboard(){
     if(view==='teams')return<>👥 <span style={{color:'var(--accent2)'}}>Teams</span></>
     if(view==='admin')return<>🛡️ <span style={{color:'var(--danger)'}}>Admin</span></>
     if(view==='profile')return<>👤 <span style={{color:'var(--accent2)'}}>My Profile</span></>
+    if(view==='focus')return<>🎯 <span style={{color:'var(--accent2)'}}>Daily Focus</span></>
+    if(view==='weekly')return<>📊 <span style={{color:'var(--accent2)'}}>Weekly Review</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -618,7 +644,7 @@ export default function Dashboard(){
               })}
 
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['analytics','📊','Analytics',null],['ai','🤖','AI Assistant','NEW'],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
+              {[['focus','🎯','Daily Focus','NEW'],['analytics','📊','Analytics',null],['weekly','📊','Weekly Review',null],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
                 <button key={v} className="nav-item" onClick={()=>setView(v)}
                   style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
                     background:view===v?'rgba(124,58,237,.1)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',
@@ -743,7 +769,9 @@ export default function Dashboard(){
 
           {/* Content */}
           <div className="main-pad" style={{flex:1,overflowY:'auto',padding:22}}>
-            {view==='profile'?<ProfilePage/>
+            {view==='focus'?<DailyFocus onNavigateToTasks={()=>setView('tasks')}/>
+            :view==='weekly'?<WeeklyReview/>
+            :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
             :view==='teams'?<TeamsPanel/>
