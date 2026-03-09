@@ -13,6 +13,10 @@ import WeeklyReview from './WeeklyReview'
 import PomodoroTimer from './PomodoroTimer'
 import Leaderboard from './Leaderboard'
 import OnboardingWizard from './OnboardingWizard'
+import HabitTracker from './HabitTracker'
+import CalendarView from './CalendarView'
+import EisenhowerMatrix from './EisenhowerMatrix'
+import ExportPanel from './ExportPanel'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -266,6 +270,15 @@ function TaskModal({task,onClose,onSave,me}){
               <div style={{marginBottom:14}}>
                 <label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Description</label>
                 <textarea style={{...INP,resize:'vertical',lineHeight:1.6}} rows={2} placeholder="Add details… (optional)" value={f.description} onChange={e=>set('description',e.target.value)} onFocus={focus} onBlur={blur}/>
+              </div>
+              <div style={{marginBottom:14}}>
+                <label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Tags</label>
+                <input style={INP} placeholder="work, urgent, personal…" value={f.tags||''} onChange={e=>set('tags',e.target.value)} onFocus={focus} onBlur={blur}/>
+                {f.tags&&<div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:6}}>
+                  {f.tags.split(',').map(t=>t.trim()).filter(Boolean).map(tag=>(
+                    <span key={tag} style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:'rgba(124,58,237,.12)',color:'#a855f7',border:'1px solid rgba(124,58,237,.2)',fontWeight:600}}>#{tag}</span>
+                  ))}
+                </div>}
               </div>
               <div style={{marginBottom:14}}>
                 <label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Priority</label>
@@ -540,6 +553,7 @@ export default function Dashboard(){
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
   const [showOnboarding,setShowOnboarding]=useState(false)
+  const [theme,setTheme]=useState(()=>localStorage.getItem('tf_theme')||'dark')
   const [view,setView]=useState('tasks')
   const [viewMode,setViewMode]=useState('list')
   const [roleFromApi,setRoleFromApi]=useState('USER')
@@ -649,13 +663,27 @@ export default function Dashboard(){
     if(view==='weekly')return<>📊 <span style={{color:'var(--accent2)'}}>Weekly Review</span></>
     if(view==='pomodoro')return<>⏱ <span style={{color:'var(--accent2)'}}>Pomodoro Timer</span></>
     if(view==='leaderboard')return<>🏆 <span style={{color:'var(--accent2)'}}>Leaderboard</span></>
+    if(view==='habits')return<>🔥 <span style={{color:'var(--accent2)'}}>Habit Tracker</span></>
+    if(view==='calendar')return<>📅 <span style={{color:'var(--accent2)'}}>Calendar</span></>
+    if(view==='matrix')return<>🎯 <span style={{color:'var(--accent2)'}}>Eisenhower Matrix</span></>
+    if(view==='export')return<>📤 <span style={{color:'var(--accent2)'}}>Export</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
   return(
     <>
       <style>{G}</style>
-      <div style={{display:'flex',height:'100vh',overflow:'hidden',background:'var(--bg)'}}>
+      <div style={{display:'flex',height:'100vh',overflow:'hidden',
+        background:theme==='light'?'#f4f4f9':'var(--bg)',
+        color:theme==='light'?'#1a1a2e':'var(--text)',
+        '--bg':theme==='light'?'#f4f4f9':'#0a0a0f',
+        '--surface':theme==='light'?'#ffffff':'#111118',
+        '--surface2':theme==='light'?'#ededf4':'#1a1a24',
+        '--border':theme==='light'?'rgba(0,0,0,.09)':'rgba(255,255,255,.06)',
+        '--border2':theme==='light'?'rgba(0,0,0,.13)':'rgba(255,255,255,.1)',
+        '--text':theme==='light'?'#1a1a2e':'#f0f0f8',
+        '--muted':theme==='light'?'#555577':'#6b6b8a',
+      }}>
 
         {/* Sidebar overlay */}
         {sideOpen&&<div className="sidebar-overlay open" onClick={()=>setSideOpen(false)}/>}
@@ -686,7 +714,7 @@ export default function Dashboard(){
               })}
 
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['analytics','📊','Analytics',null],['weekly','📊','Weekly Review',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
+              {[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits','NEW'],['calendar','📅','Calendar',null],['analytics','📊','Analytics',null],['weekly','📅','Weekly Review',null],['matrix','🎯','Priority Matrix',null],['leaderboard','🏆','Leaderboard',null],['export','📤','Export',null],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
                 <button key={v} className="nav-item" onClick={()=>setView(v)}
                   style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
                     background:view===v?'rgba(124,58,237,.1)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',
@@ -815,6 +843,10 @@ export default function Dashboard(){
             :view==='weekly'?<WeeklyReview/>
             :view==='pomodoro'?<PomodoroTimer tasks={tasks} onSessionComplete={()=>loadTasks&&loadTasks()}/>
             :view==='leaderboard'?<Leaderboard/>
+            :view==='habits'?<HabitTracker/>
+            :view==='calendar'?<CalendarView tasks={tasks} onTaskClick={t=>{setEditTask(t);setModal(true)}} onDayClick={d=>{setModal(true)}}/>
+            :view==='matrix'?<EisenhowerMatrix tasks={tasks} onTaskClick={t=>{setEditTask(t);setModal(true)}}/>
+            :view==='export'?<ExportPanel tasks={tasks}/>
             :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
