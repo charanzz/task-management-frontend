@@ -17,6 +17,10 @@ import HabitTracker from './HabitTracker'
 import CalendarView from './CalendarView'
 import EisenhowerMatrix from './EisenhowerMatrix'
 import ExportPanel from './ExportPanel'
+import SmartReminders from './SmartReminders'
+import AdvancedAnalytics from './AdvancedAnalytics'
+import GoogleCalendarSync from './GoogleCalendarSync'
+import EmailToTask from './EmailToTask'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -667,6 +671,10 @@ export default function Dashboard(){
     if(view==='calendar')return<>📅 <span style={{color:'var(--accent2)'}}>Calendar</span></>
     if(view==='matrix')return<>🎯 <span style={{color:'var(--accent2)'}}>Eisenhower Matrix</span></>
     if(view==='export')return<>📤 <span style={{color:'var(--accent2)'}}>Export</span></>
+    if(view==='reminders')return<>⏰ <span style={{color:'var(--accent2)'}}>Smart Reminders</span></>
+    if(view==='advanced-analytics')return<>📊 <span style={{color:'var(--accent2)'}}>Advanced Analytics</span></>
+    if(view==='gcal')return<>📅 <span style={{color:'var(--accent2)'}}>Google Calendar</span></>
+    if(view==='email-task')return<>📧 <span style={{color:'var(--accent2)'}}>Email → Task</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -714,7 +722,7 @@ export default function Dashboard(){
               })}
 
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits','NEW'],['calendar','📅','Calendar',null],['analytics','📊','Analytics',null],['weekly','📅','Weekly Review',null],['matrix','🎯','Priority Matrix',null],['leaderboard','🏆','Leaderboard',null],['export','📤','Export',null],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
+              {[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits','NEW'],['calendar','📅','Calendar',null],['analytics','📊','Analytics',null],['weekly','📅','Weekly Review',null],['matrix','🎯','Priority Matrix',null],['leaderboard','🏆','Leaderboard',null],['export','📤','Export',null],['reminders','⏰','Reminders',null],['advanced-analytics','📊','Deep Analytics','NEW'],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task','NEW'],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
                 <button key={v} className="nav-item" onClick={()=>setView(v)}
                   style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
                     background:view===v?'rgba(124,58,237,.1)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',
@@ -847,6 +855,10 @@ export default function Dashboard(){
             :view==='calendar'?<CalendarView tasks={tasks} onTaskClick={t=>{setEditTask(t);setModal(true)}} onDayClick={d=>{setModal(true)}}/>
             :view==='matrix'?<EisenhowerMatrix tasks={tasks} onTaskClick={t=>{setEditTask(t);setModal(true)}}/>
             :view==='export'?<ExportPanel tasks={tasks}/>
+            :view==='reminders'?<SmartReminders onTaskClick={t=>{setEditTask(t);setModal(true)}}/>
+            :view==='advanced-analytics'?<AdvancedAnalytics/>
+            :view==='gcal'?<GoogleCalendarSync tasks={tasks}/>
+            :view==='email-task'?<EmailToTask onTaskCreated={fetchAll}/>
             :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>

@@ -13,6 +13,120 @@ const ALERT_SOUNDS = {
   chime: [523, 659, 784, 1047],
 }
 
+// ── Focus sound engine using Web Audio API ────────────────
+const SOUNDS = {
+  none:   { label:'None',      emoji:'🔇' },
+  rain:   { label:'Rain',      emoji:'🌧️' },
+  cafe:   { label:'Café',      emoji:'☕' },
+  nature: { label:'Forest',    emoji:'🌲' },
+  white:  { label:'White Noise',emoji:'〰️' },
+  waves:  { label:'Ocean',     emoji:'🌊' },
+  fire:   { label:'Fireplace', emoji:'🔥' },
+}
+
+class SoundEngine {
+  constructor() { this.ctx = null; this.nodes = []; this.gain = null }
+
+  start(type, volume = 0.5) {
+    this.stop()
+    if (type === 'none') return
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)()
+      this.gain = this.ctx.createGain()
+      this.gain.gain.value = volume
+      this.gain.connect(this.ctx.destination)
+
+      if (type === 'white') {
+        const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate)
+        const data = buf.getChannelData(0)
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+        const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true
+        src.connect(this.gain); src.start(); this.nodes.push(src)
+
+      } else if (type === 'rain') {
+        // Pink noise via white noise + lowpass
+        const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate)
+        const data = buf.getChannelData(0)
+        let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0
+        for (let i = 0; i < data.length; i++) {
+          const white = Math.random() * 2 - 1
+          b0=.99886*b0+white*.0555179; b1=.99332*b1+white*.0750759
+          b2=.96900*b2+white*.1538520; b3=.86650*b3+white*.3104856
+          b4=.55000*b4+white*.5329522; b5=-.7616*b5-white*.0168980
+          data[i] = (b0+b1+b2+b3+b4+b5+white*.5362) * .11
+        }
+        const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true
+        const lp = this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=600
+        src.connect(lp); lp.connect(this.gain); src.start(); this.nodes.push(src)
+
+      } else if (type === 'cafe') {
+        // Layered: low murmur + occasional clink
+        const mkNoise = (freq, q, vol) => {
+          const buf = this.ctx.createBuffer(1, this.ctx.sampleRate*2, this.ctx.sampleRate)
+          const d = buf.getChannelData(0)
+          for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1
+          const src = this.ctx.createBufferSource(); src.buffer=buf; src.loop=true
+          const f = this.ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=freq; f.Q.value=q
+          const g = this.ctx.createGain(); g.gain.value=vol
+          src.connect(f); f.connect(g); g.connect(this.gain); src.start(); this.nodes.push(src)
+        }
+        mkNoise(300, 0.5, 0.4); mkNoise(800, 0.3, 0.2)
+
+      } else if (type === 'nature') {
+        // Birds chirp simulation
+        const chirp = () => {
+          if (!this.ctx) return
+          const o = this.ctx.createOscillator(); const g = this.ctx.createGain()
+          o.connect(g); g.connect(this.gain)
+          o.frequency.setValueAtTime(2000+Math.random()*800, this.ctx.currentTime)
+          o.frequency.exponentialRampToValueAtTime(2500+Math.random()*500, this.ctx.currentTime+.15)
+          g.gain.setValueAtTime(0.015, this.ctx.currentTime)
+          g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime+.2)
+          o.start(this.ctx.currentTime); o.stop(this.ctx.currentTime+.2)
+          this.nodes.push(o)
+          setTimeout(chirp, 800+Math.random()*2000)
+        }
+        chirp()
+        // Wind base
+        const buf = this.ctx.createBuffer(1,this.ctx.sampleRate*2,this.ctx.sampleRate)
+        const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1
+        const src = this.ctx.createBufferSource(); src.buffer=buf; src.loop=true
+        const lp = this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=200
+        const wg = this.ctx.createGain(); wg.gain.value=0.1
+        src.connect(lp); lp.connect(wg); wg.connect(this.gain); src.start(); this.nodes.push(src)
+
+      } else if (type === 'waves') {
+        // LFO-modulated noise for ocean waves
+        const buf = this.ctx.createBuffer(1,this.ctx.sampleRate*4,this.ctx.sampleRate)
+        const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1
+        const src = this.ctx.createBufferSource(); src.buffer=buf; src.loop=true
+        const lp = this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=500
+        const lfo = this.ctx.createOscillator(); const lfog = this.ctx.createGain()
+        lfo.frequency.value=0.12; lfog.gain.value=0.3
+        lfo.connect(lfog); lfog.connect(lp.frequency)
+        lfo.start(); src.connect(lp); lp.connect(this.gain); src.start(); this.nodes.push(src,lfo)
+
+      } else if (type === 'fire') {
+        // Crackling via random gain modulation
+        const buf = this.ctx.createBuffer(1,this.ctx.sampleRate*2,this.ctx.sampleRate)
+        const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1
+        const src = this.ctx.createBufferSource(); src.buffer=buf; src.loop=true
+        const lp = this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=400
+        src.connect(lp); lp.connect(this.gain); src.start(); this.nodes.push(src)
+      }
+    } catch(e) { console.warn('Audio not supported',e) }
+  }
+
+  setVolume(v) { if (this.gain) this.gain.gain.value = v }
+
+  stop() {
+    this.nodes.forEach(n => { try { n.stop?.(); n.disconnect?.() } catch(e){} })
+    this.nodes = []
+    if (this.ctx) { this.ctx.close().catch(()=>{}); this.ctx = null }
+  }
+}
+const soundEngine = new SoundEngine()
+
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
   @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
@@ -81,6 +195,9 @@ export default function PomodoroTimer({ tasks = [] }) {
   const [sessions, setSessions]   = useState(0)
   const [selectedTask, setSel]    = useState(null)
   const [showTasks, setShowTasks] = useState(false)
+  const [sound, setSound]         = useState('none')
+  const [volume, setVolume]       = useState(0.4)
+  const [showSounds, setShowSnd]  = useState(false)
   const [alert, setAlert]         = useState(null)   // null | 'focus' | 'break'
   const [showConf, setShowConf]   = useState(false)
   const [editing, setEditing]     = useState(false)  // editing time
@@ -157,6 +274,15 @@ export default function PomodoroTimer({ tasks = [] }) {
   useEffect(() => {
     if (Notification.permission === 'default') Notification.requestPermission()
   }, [])
+
+  // Sound control
+  useEffect(() => {
+    if (running && sound !== 'none') soundEngine.start(sound, volume)
+    else soundEngine.stop()
+    return () => soundEngine.stop()
+  }, [running, sound])
+
+  useEffect(() => { soundEngine.setVolume(volume) }, [volume])
 
   useEffect(() => {
     document.title = running ? `${formatTime(secs)} ${cfg.emoji} ${cfg.label} | TaskFlow` : 'TaskFlow'
@@ -332,6 +458,55 @@ export default function PomodoroTimer({ tasks = [] }) {
           <span style={{fontSize:11,color:'#6b6b8a',marginLeft:4,fontWeight:600}}>
             {sessions} session{sessions!==1?'s':''} · {Math.floor(sessions*customMins.focus)} min focused
           </span>
+        </div>
+
+        {/* Focus Sounds */}
+        <div style={{background:'#111118',border:'1px solid rgba(255,255,255,.07)',borderRadius:16,
+          overflow:'hidden',marginBottom:12}}>
+          <button onClick={() => setShowSnd(s=>!s)}
+            style={{width:'100%',padding:'13px 18px',background:'none',border:'none',
+              display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{width:32,height:32,borderRadius:9,
+                background:sound!=='none'?'rgba(96,165,250,.15)':'rgba(255,255,255,.04)',
+                border:`1px solid ${sound!=='none'?'rgba(96,165,250,.3)':'rgba(255,255,255,.08)'}`,
+                display:'flex',alignItems:'center',justifyContent:'center',fontSize:15}}>
+                {SOUNDS[sound]?.emoji||'🔇'}
+              </div>
+              <div style={{textAlign:'left'}}>
+                <p style={{fontSize:13,fontWeight:600,color:'#f0f0f8',margin:0}}>
+                  {sound==='none'?'Focus Sounds (off)':SOUNDS[sound]?.label+' playing…'}
+                </p>
+                {sound!=='none'&&running&&<p style={{fontSize:10,color:'#60a5fa',margin:0,animation:'pulse 2s ease infinite'}}>🎵 Playing</p>}
+              </div>
+            </div>
+            <span style={{color:'#6b6b8a',fontSize:11,transform:showSounds?'rotate(180deg)':'none',transition:'transform .2s'}}>▼</span>
+          </button>
+          {showSounds && (
+            <div style={{borderTop:'1px solid rgba(255,255,255,.06)',padding:'12px 14px'}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:6,marginBottom:12}}>
+                {Object.entries(SOUNDS).map(([key,s]) => (
+                  <button key={key} onClick={() => { setSound(key); if(running&&key!=='none') soundEngine.start(key,volume); else if(key==='none') soundEngine.stop() }}
+                    style={{padding:'8px 4px',borderRadius:10,border:'none',cursor:'pointer',
+                      textAlign:'center',transition:'all .15s',
+                      background:sound===key?'rgba(96,165,250,.15)':'rgba(255,255,255,.04)',
+                      outline:sound===key?'1.5px solid rgba(96,165,250,.5)':'none'}}>
+                    <p style={{fontSize:18,margin:'0 0 2px'}}>{s.emoji}</p>
+                    <p style={{fontSize:9,color:sound===key?'#60a5fa':'#6b6b8a',margin:0,fontWeight:600}}>{s.label}</p>
+                  </button>
+                ))}
+              </div>
+              {sound !== 'none' && (
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:11,color:'#6b6b8a',flexShrink:0}}>🔉</span>
+                  <input type="range" min={0} max={1} step={.05} value={volume}
+                    onChange={e => setVolume(parseFloat(e.target.value))}
+                    style={{flex:1,accentColor:'#60a5fa'}}/>
+                  <span style={{fontSize:11,color:'#6b6b8a',flexShrink:0}}>🔊</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Task selector */}
