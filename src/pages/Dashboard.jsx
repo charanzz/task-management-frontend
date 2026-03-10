@@ -557,6 +557,18 @@ export default function Dashboard(){
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
   const [showOnboarding,setShowOnboarding]=useState(false)
+  const [navOpen,setNavOpen]=useState({focus:true,insights:false,collaborate:false,tools:false})
+  const toggleNav = (k) => setNavOpen(p=>({...p,[k]:!p[k]}))
+  const NAV_GROUPS = {
+    focus:['focus','pomodoro','habits','calendar'],
+    insights:['analytics','weekly','advanced-analytics','matrix'],
+    collaborate:['teams','leaderboard','ai'],
+    tools:['reminders','export','gcal','email-task'],
+  }
+  const openGroupForView = (v) => {
+    const grp = Object.entries(NAV_GROUPS).find(([,items])=>items.includes(v))
+    if (grp) setNavOpen(p=>({...p,[grp[0]]:true}))
+  }
   const [theme,setTheme]=useState(()=>localStorage.getItem('tf_theme')||'dark')
   const [view,setView]=useState('tasks')
   const [viewMode,setViewMode]=useState('list')
@@ -721,17 +733,58 @@ export default function Dashboard(){
                 )
               })}
 
-              <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>INSIGHTS</p>
-              {[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits','NEW'],['calendar','📅','Calendar',null],['analytics','📊','Analytics',null],['weekly','📅','Weekly Review',null],['matrix','🎯','Priority Matrix',null],['leaderboard','🏆','Leaderboard',null],['export','📤','Export',null],['reminders','⏰','Reminders',null],['advanced-analytics','📊','Deep Analytics','NEW'],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task','NEW'],['ai','🤖','AI Assistant',null],['teams','👥','Teams',null]].map(([v,ic,lb,badge])=>(
-                <button key={v} className="nav-item" onClick={()=>setView(v)}
-                  style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
-                    background:view===v?'rgba(124,58,237,.1)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',
-                    border:view===v?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}>
-                  <span style={{width:17,textAlign:'center'}}>{ic}</span>
-                  <span style={{flex:1}}>{lb}</span>
-                  {badge&&<span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'linear-gradient(135deg,#7c3aed,#a855f7)',color:'#fff',fontWeight:700}}>{badge}</span>}
-                </button>
-              ))}
+              {/* ── NAV GROUPS ── */}
+              {[
+                { key:'focus', label:'Focus & Habits', icon:'🎯',
+                  items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null]] },
+                { key:'insights', label:'Insights', icon:'📊',
+                  items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]] },
+                { key:'collaborate', label:'Teams & Social', icon:'👥',
+                  items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]] },
+                { key:'tools', label:'Tools', icon:'🔧',
+                  items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['export','📤','Export',null]] },
+              ].map(group => {
+                const isGroupActive = group.items.some(([v])=>v===view)
+                const isOpen = navOpen[group.key]
+                return (
+                  <div key={group.key} style={{marginBottom:4}}>
+                    {/* Group header */}
+                    <button onClick={()=>toggleNav(group.key)}
+                      style={{width:'100%',display:'flex',alignItems:'center',gap:8,
+                        padding:'8px 10px',borderRadius:10,cursor:'pointer',
+                        background:isGroupActive?'rgba(124,58,237,.06)':'transparent',
+                        border:`1px solid ${isGroupActive?'rgba(124,58,237,.12)':'transparent'}`,
+                        transition:'all .15s'}}>
+                      <span style={{fontSize:14}}>{group.icon}</span>
+                      <span style={{flex:1,fontSize:11,fontWeight:700,letterSpacing:'1px',
+                        textTransform:'uppercase',color:isGroupActive?'var(--accent2)':'var(--muted)',
+                        textAlign:'left'}}>{group.label}</span>
+                      <span style={{fontSize:10,color:'var(--muted)',transition:'transform .2s',
+                        transform:isOpen?'rotate(90deg)':'rotate(0deg)'}}>›</span>
+                    </button>
+                    {/* Group items */}
+                    {isOpen && (
+                      <div style={{paddingLeft:8,marginTop:2}}>
+                        {group.items.map(([v,ic,lb,badge])=>(
+                          <button key={v} className="nav-item" onClick={()=>{setView(v);openGroupForView(v)}}
+                            style={{width:'100%',display:'flex',alignItems:'center',gap:9,
+                              padding:'8px 10px',borderRadius:9,marginBottom:1,cursor:'pointer',
+                              fontSize:12,fontWeight:500,textAlign:'left',transition:'all .12s',
+                              background:view===v?'rgba(124,58,237,.12)':'transparent',
+                              color:view===v?'var(--accent2)':'var(--muted)',
+                              border:view===v?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}>
+                            <span style={{width:16,textAlign:'center',fontSize:13}}>{ic}</span>
+                            <span style={{flex:1}}>{lb}</span>
+                            {badge&&<span style={{fontSize:9,padding:'2px 5px',borderRadius:4,
+                              background:'linear-gradient(135deg,#7c3aed,#a855f7)',
+                              color:'#fff',fontWeight:700}}>{badge}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
 
               <button onClick={()=>navigate('/pricing')} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',background:'rgba(255,217,61,.06)',border:'1px solid rgba(255,217,61,.15)',color:'var(--warn)'}}>
                 <span style={{width:17,textAlign:'center'}}>⭐</span><span>Upgrade to Pro</span>
