@@ -604,12 +604,17 @@ export default function Dashboard(){
   const [view,setView]=useState('tasks')
   const [viewMode,setViewMode]=useState('list')
   const [roleFromApi,setRoleFromApi]=useState('USER')
+  const [trialDaysLeft,setTrialDaysLeft]=useState(null)
   const {user,login,logout}=useAuth()
   const navigate=useNavigate()
 
   useEffect(()=>{
     api.get('/api/users/me').then(r=>{
       setRoleFromApi(r.data.role||'USER')
+      if(r.data.createdAt){
+        const diffDays=Math.floor((new Date()-new Date(r.data.createdAt))/(1000*60*60*24))
+        setTrialDaysLeft(Math.max(0,15-diffDays))
+      }
       if(user) login(localStorage.getItem('token'),{...user,role:r.data.role,isPro:r.data.isPro})
     }).catch(()=>{})
   },[])
@@ -818,9 +823,22 @@ export default function Dashboard(){
                 )
               })}
 
-              <button onClick={()=>navigate('/pricing')} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',background:'rgba(255,217,61,.06)',border:'1px solid rgba(255,217,61,.15)',color:'var(--warn)'}}>
-                <span style={{width:17,textAlign:'center'}}>⭐</span><span>Upgrade to Pro</span>
-              </button>
+              {!isAdmin && (
+                <button onClick={()=>navigate('/pricing')} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',background:'rgba(255,217,61,.06)',border:'1px solid rgba(255,217,61,.15)',color:'var(--warn)'}}>
+                  <span style={{width:17,textAlign:'center'}}>⭐</span>
+                  <span style={{flex:1}}>Upgrade to Pro</span>
+                  {trialDaysLeft!==null&&trialDaysLeft>0&&(
+                    <span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'rgba(255,217,61,.15)',color:'#ffd93d',fontWeight:700,border:'1px solid rgba(255,217,61,.3)'}}>
+                      {trialDaysLeft}d left
+                    </span>
+                  )}
+                  {trialDaysLeft===0&&(
+                    <span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'rgba(255,107,107,.15)',color:'#ff6b6b',fontWeight:700,border:'1px solid rgba(255,107,107,.3)'}}>
+                      Expired
+                    </span>
+                  )}
+                </button>
+              )}
 
               {isAdmin&&(
                 <>
