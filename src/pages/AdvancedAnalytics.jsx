@@ -81,6 +81,27 @@ export default function AdvancedAnalytics() {
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:80}}><Spin/></div>
   if (!data) return <p style={{color:'#ff6b6b',textAlign:'center'}}>Failed to load analytics</p>
 
+  if (data.total === 0) return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+      minHeight:400,textAlign:'center',padding:'60px 24px',fontFamily:'DM Sans,sans-serif'}}>
+      <div style={{fontSize:72,marginBottom:20,filter:'grayscale(.3)'}}>📊</div>
+      <p style={{fontSize:22,fontWeight:800,color:'#f0f0f8',margin:'0 0 10px',fontFamily:'Syne,sans-serif'}}>
+        No data yet
+      </p>
+      <p style={{fontSize:14,color:'#6b6b8a',maxWidth:320,lineHeight:1.7,margin:'0 0 28px'}}>
+        Complete some tasks to unlock your productivity analytics — heatmap, trends, best focus hours and more.
+      </p>
+      <div style={{display:'flex',gap:16,flexWrap:'wrap',justifyContent:'center'}}>
+        {[['🎯','Complete a task'],['🔥','Build a streak'],['⏱','Run a Pomodoro']].map(([ic,lb])=>(
+          <div key={lb} style={{padding:'12px 18px',borderRadius:12,background:'rgba(124,58,237,.08)',
+            border:'1px solid rgba(124,58,237,.2)',fontSize:13,color:'#a78bfa',fontWeight:600}}>
+            {ic} {lb}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
   const tier = getTier(data.productivityScore)
 
   return (

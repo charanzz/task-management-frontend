@@ -132,10 +132,22 @@ export default function Leaderboard() {
           {loading ? (
             <div style={{ display:'flex',justifyContent:'center',padding:48 }}><Spinner/></div>
           ) : board.length === 0 ? (
-            <div style={{ textAlign:'center',padding:'48px 24px' }}>
-              <p style={{ fontSize:32,marginBottom:12 }}>🏆</p>
-              <p style={{ fontSize:14,fontWeight:600,color:'#f0f0f8' }}>No data yet</p>
-              <p style={{ fontSize:12,color:'#6b6b8a' }}>Complete tasks to appear on the leaderboard!</p>
+            <div style={{ textAlign:'center',padding:'60px 24px' }}>
+              <div style={{fontSize:64,marginBottom:16}}>🏆</div>
+              <p style={{fontSize:18,fontWeight:800,color:'#f0f0f8',margin:'0 0 8px',fontFamily:'Syne,sans-serif'}}>
+                No rankings yet
+              </p>
+              <p style={{fontSize:13,color:'#6b6b8a',marginBottom:24,maxWidth:280,margin:'0 auto 24px',lineHeight:1.7}}>
+                Complete tasks and build streaks to earn XP and claim your spot on the leaderboard
+              </p>
+              <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
+                {[['⚡','Earn XP'],['🔥','Build Streaks'],['🎯','Complete Tasks']].map(([ic,lb])=>(
+                  <span key={lb} style={{padding:'8px 16px',borderRadius:10,background:'rgba(124,58,237,.08)',
+                    border:'1px solid rgba(124,58,237,.2)',fontSize:12,color:'#a78bfa',fontWeight:600}}>
+                    {ic} {lb}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : board.map((entry, i) => {
             const isTop3 = i < 3

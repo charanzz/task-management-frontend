@@ -21,6 +21,7 @@ import SmartReminders from './SmartReminders'
 import AdvancedAnalytics from './AdvancedAnalytics'
 import GoogleCalendarSync from './GoogleCalendarSync'
 import EmailToTask from './EmailToTask'
+import AITaskBreakdown from './AITaskBreakdown'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -61,6 +62,9 @@ const G = `
   .cal-day:hover{background:var(--surface2)!important}
   .nav-item:hover{background:var(--surface2)!important}
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;backdrop-filter:blur(4px)}
+  @keyframes pomPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.4)}70%{box-shadow:0 0 0 8px rgba(124,58,237,0)}}
+  .pom-minibar{animation:pomPulse 2s infinite}
+  .empty-state-btn:hover{transform:translateY(-2px)!important;box-shadow:0 8px 24px rgba(124,58,237,.4)!important}
   /* ── FAB ── */
   .fab{display:none;position:fixed;bottom:86px;right:18px;z-index:50;width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:26px;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(124,58,237,.55);border:none;cursor:pointer;transition:transform .15s}
   .fab:active{transform:scale(.93)!important}
@@ -545,6 +549,33 @@ function TaskRow({task,onToggle,onEdit,onDelete,idx}){
 
 // ── Main Dashboard ────────────────────────────────────────────
 export default function Dashboard(){
+  // Persistent Pomodoro mini-bar state (lifted from PomodoroTimer)
+  const [pomRunning,setPomRunning]=useState(false)
+  const [pomSecs,setPomSecs]=useState(25*60)
+  const [pomMode,setPomMode]=useState('focus')
+  const [pomSessions,setPomSessions]=useState(0)
+  const pomRef=useRef(null)
+  useEffect(()=>{
+    if(pomRunning){
+      pomRef.current=setInterval(()=>{
+        setPomSecs(s=>{
+          if(s<=1){
+            clearInterval(pomRef.current)
+            setPomRunning(false)
+            if(pomMode==='focus') setPomSessions(p=>p+1)
+            return 0
+          }
+          return s-1
+        })
+      },1000)
+    } else {
+      clearInterval(pomRef.current)
+    }
+    return ()=>clearInterval(pomRef.current)
+  },[pomRunning,pomMode])
+  const pomFormatTime=s=>`${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+  const pomModeColor=pomMode==='focus'?'#7c3aed':pomMode==='short'?'#10b981':'#0ea5e9'
+
   const [tasks,setTasks]=useState([])
   const [stats,setStats]=useState(null)
   const [lvl,setLvl]=useState({level:1,focusScore:0,nextLevelAt:100})
@@ -563,7 +594,7 @@ export default function Dashboard(){
     focus:['focus','pomodoro','habits','calendar'],
     insights:['analytics','weekly','advanced-analytics','matrix'],
     collaborate:['teams','leaderboard','ai'],
-    tools:['reminders','export','gcal','email-task'],
+    tools:['reminders','export','gcal','email-task','ai-breakdown'],
   }
   const openGroupForView = (v) => {
     const grp = Object.entries(NAV_GROUPS).find(([,items])=>items.includes(v))
@@ -687,6 +718,7 @@ export default function Dashboard(){
     if(view==='advanced-analytics')return<>📊 <span style={{color:'var(--accent2)'}}>Advanced Analytics</span></>
     if(view==='gcal')return<>📅 <span style={{color:'var(--accent2)'}}>Google Calendar</span></>
     if(view==='email-task')return<>📧 <span style={{color:'var(--accent2)'}}>Email → Task</span></>
+    if(view==='ai-breakdown')return<>🧠 <span style={{color:'var(--accent2)'}}>AI Task Breakdown</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -742,7 +774,7 @@ export default function Dashboard(){
                 { key:'collaborate', label:'Teams & Social', icon:'👥',
                   items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]] },
                 { key:'tools', label:'Tools', icon:'🔧',
-                  items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['export','📤','Export',null]] },
+                  items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['ai-breakdown','🧠','AI Breakdown','NEW'],['export','📤','Export',null]] },
               ].map(group => {
                 const isGroupActive = group.items.some(([v])=>v===view)
                 const isOpen = navOpen[group.key]
@@ -902,7 +934,7 @@ export default function Dashboard(){
           <div className="main-pad" style={{flex:1,overflowY:'auto',padding:22}}>
             {view==='focus'?<DailyFocus onNavigateToTasks={()=>setView('tasks')}/>
             :view==='weekly'?<WeeklyReview/>
-            :view==='pomodoro'?<PomodoroTimer tasks={tasks} onSessionComplete={()=>loadTasks&&loadTasks()}/>
+            :view==='pomodoro'?<PomodoroTimer tasks={tasks} onSessionComplete={()=>loadTasks&&loadTasks()} running={pomRunning} setRunning={setPomRunning} secs={pomSecs} setSecs={setPomSecs} mode={pomMode} setMode={setPomMode} sessions={pomSessions} setSessions={setPomSessions}/>
             :view==='leaderboard'?<Leaderboard/>
             :view==='habits'?<HabitTracker/>
             :view==='calendar'?<CalendarView tasks={tasks} onTaskClick={t=>{setEditTask(t);setModal(true)}} onDayClick={d=>{setModal(true)}}/>
@@ -912,6 +944,7 @@ export default function Dashboard(){
             :view==='advanced-analytics'?<AdvancedAnalytics/>
             :view==='gcal'?<GoogleCalendarSync tasks={tasks}/>
             :view==='email-task'?<EmailToTask onTaskCreated={fetchAll}/>
+            :view==='ai-breakdown'?<AITaskBreakdown onSaved={fetchAll}/>
             :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
@@ -972,6 +1005,42 @@ export default function Dashboard(){
 
         {/* Onboarding wizard */}
         {showOnboarding&&<OnboardingWizard onComplete={()=>{setShowOnboarding(false)}} />}
+
+        {/* Persistent Pomodoro Mini-bar — shows when timer running and not on pomodoro view */}
+        {pomRunning && view!=='pomodoro' && (
+          <div className="pom-minibar" onClick={()=>setView('pomodoro')} style={{
+            position:'fixed',bottom:0,left:0,right:0,zIndex:200,
+            background:`linear-gradient(135deg,${pomModeColor}22,${pomModeColor}11)`,
+            borderTop:`2px solid ${pomModeColor}`,
+            backdropFilter:'blur(20px)',
+            display:'flex',alignItems:'center',justifyContent:'space-between',
+            padding:'10px 20px',cursor:'pointer',gap:12}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:20,animation:'pomPulse 1s infinite'}}>{pomMode==='focus'?'🎯':pomMode==='short'?'☕':'🌙'}</span>
+              <div>
+                <p style={{margin:0,fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:'1px'}}>
+                  {pomMode==='focus'?'Focus Session':pomMode==='short'?'Short Break':'Long Break'}
+                </p>
+                <p style={{margin:0,fontSize:22,fontWeight:800,color:'#fff',fontFamily:'monospace',letterSpacing:'2px'}}>
+                  {pomFormatTime(pomSecs)}
+                </p>
+              </div>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:11,color:'var(--muted)'}}>Session {pomSessions+1}</span>
+              <button onClick={e=>{e.stopPropagation();setPomRunning(false)}}
+                style={{padding:'6px 14px',borderRadius:8,border:`1px solid ${pomModeColor}44`,
+                  background:`${pomModeColor}22`,color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>
+                Pause
+              </button>
+              <button onClick={e=>{e.stopPropagation();setPomRunning(false);setPomSecs(25*60);setPomMode('focus')}}
+                style={{padding:'6px 14px',borderRadius:8,border:'1px solid rgba(255,255,255,.1)',
+                  background:'rgba(255,255,255,.05)',color:'var(--muted)',fontSize:12,cursor:'pointer'}}>
+                Stop
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Mobile bottom nav */}
         <nav className="bnav" style={{justifyContent:'space-around',alignItems:'center'}}>

@@ -187,12 +187,22 @@ function Confetti({ color }) {
   )
 }
 
-export default function PomodoroTimer({ tasks = [] }) {
-  const [mode, setMode]           = useState('focus')
-  const [customMins, setCustom]   = useState({...DEFAULT_MINS})
-  const [secs, setSecs]           = useState(DEFAULT_MINS.focus * 60)
-  const [running, setRunning]     = useState(false)
-  const [sessions, setSessions]   = useState(0)
+export default function PomodoroTimer({ tasks = [], running: extRunning, setRunning: extSetRunning, secs: extSecs, setSecs: extSetSecs, mode: extMode, setMode: extSetMode, sessions: extSessions, setSessions: extSetSessions }) {
+  const [modeLocal, setModeLocal]       = useState('focus')
+  const [customMins, setCustom]         = useState({...DEFAULT_MINS})
+  const [secsLocal, setSecsLocal]       = useState(DEFAULT_MINS.focus * 60)
+  const [runningLocal, setRunningLocal] = useState(false)
+  const [sessionsLocal, setSessionsLocal] = useState(0)
+
+  // Use lifted state if provided (persistent mini-bar), else use local
+  const mode      = extMode      ?? modeLocal
+  const setMode   = extSetMode   ?? setModeLocal
+  const secs      = extSecs      ?? secsLocal
+  const setSecs   = extSetSecs   ?? setSecsLocal
+  const running   = extRunning   ?? runningLocal
+  const setRunning= extSetRunning?? setRunningLocal
+  const sessions  = extSessions  ?? sessionsLocal
+  const setSessions=extSetSessions??setSessionsLocal
   const [selectedTask, setSel]    = useState(null)
   const [showTasks, setShowTasks] = useState(false)
   const [sound, setSound]         = useState('none')
