@@ -1116,7 +1116,7 @@ export default function Dashboard(){
                               color:view===v
                                 ?({focus:'#f472b6',insights:'#22d3ee',collaborate:'#34d399',tools:'#fb923c'}[group.key]||'var(--accent3)')
                                 :'var(--muted)',
-                              border:view===v?`1px solid ${({focus:'rgba(236,72,153,.25)',insights:'rgba(6,182,212,.25)',collaborate:'rgba(16,185,129,.25)',tools:'rgba(249,115,22,.25)'}[group.key]||'rgba(139,92,246,.22)'})`:'1px solid transparent'}}>
+                              border:view===v?`1px solid ${({focus:'rgba(236,72,153,.25)',insights:'rgba(6,182,212,.25)',collaborate:'rgba(16,185,129,.25)',tools:'rgba(249,115,22,.25)'}[group.key]||'rgba(139,92,246,.22)')}`:'1px solid transparent'}}>
                             <span style={{width:15,textAlign:'center',fontSize:12,opacity:view===v?1:.6}}>{ic}</span>
                             <span style={{flex:1,letterSpacing:'-0.1px'}}>{lb}</span>
                             {badge&&<span style={{fontSize:8,padding:'2px 7px',borderRadius:10,
