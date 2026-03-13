@@ -38,89 +38,151 @@ const LVL = ['','Novice','Apprentice','Achiever','Hustler','Warrior','Champion',
 
 // ── Styles ───────────────────────────────────────────────────
 const G = `
-  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;--surface3:#22222f;
-    --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.1);
-    --text:#f0f0f8;--muted:#6b6b8a;
-    --accent:#7c3aed;--accent2:#a855f7;--accent3:#c084fc;
-    --glow:rgba(124,58,237,.3);--danger:#ff6b6b;--warn:#ffd93d;--success:#6bcb77;
+    --bg:#060608;--surface:#0e0e14;--surface2:#16161f;--surface3:#1e1e2a;--surface4:#252533;
+    --border:rgba(255,255,255,.05);--border2:rgba(255,255,255,.09);--border3:rgba(255,255,255,.14);
+    --text:#eeeef5;--text2:#c4c4d4;--muted:#52526e;--muted2:#7474a0;
+    --accent:#6d28d9;--accent2:#8b5cf6;--accent3:#a78bfa;--accent4:#c4b5fd;
+    --glow:rgba(109,40,217,.4);--glow2:rgba(139,92,246,.25);
+    --danger:#f43f5e;--danger2:rgba(244,63,94,.12);
+    --warn:#f59e0b;--warn2:rgba(245,158,11,.12);
+    --success:#10b981;--success2:rgba(16,185,129,.12);
+    --blue:#3b82f6;--blue2:rgba(59,130,246,.12);
+    --radius:16px;--radius2:12px;--radius3:8px;
+    --sidebar-w:248px;
   }
-  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;-webkit-font-smoothing:antialiased}
+
+  /* ── Keyframes ── */
+  @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
   @keyframes spin{to{transform:rotate(360deg)}}
-  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-  @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-  @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
-  .skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:12px}
-  ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:4px}
-  button,input,select,textarea{font-family:'DM Sans',sans-serif}
-  .task-row:hover{background:var(--surface2)!important;border-color:var(--border2)!important}
-  .kcard{cursor:grab;transition:box-shadow .15s}.kcard:active{cursor:grabbing;opacity:.7}
-  .kcol.dragover{background:rgba(124,58,237,.08)!important;border-color:rgba(124,58,237,.3)!important}
-  .cal-day:hover{background:var(--surface2)!important}
-  .nav-item:hover{background:var(--surface2)!important}
-  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99;backdrop-filter:blur(4px)}
-  @keyframes pomPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.4)}70%{box-shadow:0 0 0 8px rgba(124,58,237,0)}}
-  .pom-minibar{animation:pomPulse 2s infinite}
-  .empty-state-btn:hover{transform:translateY(-2px)!important;box-shadow:0 8px 24px rgba(124,58,237,.4)!important}
+  @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+  @keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes slideRight{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes pulseRing{0%,100%{box-shadow:0 0 0 0 rgba(109,40,217,.5)}70%{box-shadow:0 0 0 10px rgba(109,40,217,0)}}
+  @keyframes countUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes gradMove{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  @keyframes taskPop{0%{opacity:0;transform:scale(.97) translateY(6px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar{width:3px;height:3px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--surface4);border-radius:4px}
+
+  /* ── Base elements ── */
+  button,input,select,textarea{font-family:'Space Grotesk',sans-serif}
+
+  /* ── Skeleton ── */
+  .skel{background:linear-gradient(90deg,var(--surface2) 0%,var(--surface3) 50%,var(--surface2) 100%);background-size:400px 100%;animation:shimmer 1.6s ease infinite;border-radius:var(--radius2)}
+
+  /* ── Sidebar ── */
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99;backdrop-filter:blur(8px)}
+  .nav-item{transition:all .14s ease!important}
+  .nav-item:hover{background:var(--surface3)!important;color:var(--text2)!important}
+  .nav-group-btn:hover{background:rgba(255,255,255,.04)!important}
+
+  /* ── Task rows ── */
+  .task-row{transition:all .16s ease!important}
+  .task-row:hover{background:var(--surface2)!important;border-color:var(--border2)!important;transform:translateX(2px)}
+  .task-row:hover .task-actions{opacity:1!important}
+  .task-actions{opacity:0;transition:opacity .16s}
+
+  /* ── Kanban ── */
+  .kcard{cursor:grab;transition:all .16s ease}
+  .kcard:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.4)!important}
+  .kcard:active{cursor:grabbing;opacity:.8;transform:scale(.98)}
+  .kcol.dragover{background:rgba(109,40,217,.07)!important;border-color:rgba(109,40,217,.35)!important}
+
+  /* ── Buttons ── */
+  .btn-primary{transition:all .18s ease}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--glow)!important}
+  .btn-primary:active{transform:translateY(0)}
+  .btn-ghost:hover{background:var(--surface3)!important;color:var(--text2)!important}
+
+  /* ── Filter pills ── */
+  .filter-pill{transition:all .14s ease}
+  .filter-pill:hover{border-color:var(--border3)!important;color:var(--text2)!important}
+
+  /* ── Calendar ── */
+  .cal-day:hover{background:var(--surface3)!important;border-color:var(--border2)!important}
+
+  /* ── Stat cards ── */
+  .stat-card{transition:all .2s ease}
+  .stat-card:hover{transform:translateY(-3px);border-color:var(--border2)!important}
+
+  /* ── Pomodoro mini-bar ── */
+  @keyframes pomPulse{0%,100%{box-shadow:0 0 0 0 rgba(109,40,217,.5)}70%{box-shadow:0 0 0 12px rgba(109,40,217,0)}}
+  .pom-minibar{animation:pomPulse 2.5s infinite}
+
+  /* ── Empty state ── */
+  .empty-state-btn:hover{transform:translateY(-2px)!important;box-shadow:0 10px 30px var(--glow)!important}
+
   /* ── FAB ── */
-  .fab{display:none;position:fixed;bottom:86px;right:18px;z-index:50;width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:26px;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(124,58,237,.55);border:none;cursor:pointer;transition:transform .15s}
-  .fab:active{transform:scale(.93)!important}
+  .fab{display:none;position:fixed;bottom:90px;right:20px;z-index:50;width:52px;height:52px;border-radius:15px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:24px;
+    align-items:center;justify-content:center;
+    box-shadow:0 8px 32px var(--glow);border:none;cursor:pointer;transition:all .18s}
+  .fab:hover{transform:scale(1.08) translateY(-2px);box-shadow:0 12px 40px var(--glow)}
+  .fab:active{transform:scale(.94)}
+
   /* ── Bottom nav ── */
-  .bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);padding:6px 0 env(safe-area-inset-bottom,6px);backdrop-filter:blur(20px)}
-  .bnav-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0;background:none;border:none;cursor:pointer;flex:1;position:relative;transition:all .15s}
-  .bnav-btn:active{opacity:.7}
-  .bnav-dot{width:4px;height:4px;border-radius:50%;background:var(--accent2);position:absolute;bottom:2px}
-  /* ── Mobile overrides ── */
+  .bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;
+    background:rgba(14,14,20,.92);border-top:1px solid var(--border);
+    padding:6px 0 env(safe-area-inset-bottom,6px);backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px)}
+  .bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;
+    background:none;border:none;cursor:pointer;flex:1;position:relative;transition:all .15s}
+  .bnav-btn:active{opacity:.7;transform:scale(.9)}
+  .bnav-dot{width:4px;height:4px;border-radius:50%;background:var(--accent2);position:absolute;bottom:1px;
+    box-shadow:0 0 6px var(--accent2)}
+
+  /* ── Glass card utility ── */
+  .glass{background:rgba(22,22,31,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+  /* ── Mobile ── */
   @media(max-width:768px){
     .sidebar-overlay.open{display:block}
-    .sidebar{position:fixed!important;left:0;top:0;bottom:0;z-index:100;transform:translateX(-100%);transition:transform .25s ease!important;width:260px!important}
-    .sidebar.open{transform:translateX(0)!important}
-    .stat-grid{grid-template-columns:1fr 1fr!important;gap:8px!important}
+    .sidebar{position:fixed!important;left:0;top:0;bottom:0;z-index:100;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1)!important;width:260px!important}
+    .sidebar.open{transform:translateX(0)!important;box-shadow:24px 0 60px rgba(0,0,0,.6)}
+    .stat-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
     .header-search{display:none!important}
     .fab{display:flex!important}
-    .kgrid{grid-template-columns:1fr!important}
-    .task-form-grid{grid-template-columns:1fr!important}
-    .main-pad{padding:12px!important;padding-bottom:90px!important}
-    .bnav{display:flex!important}
-    /* Task rows on mobile */
-    .task-card-status{display:none!important}
-    /* Modal full screen on mobile */
-    .modal-box{max-width:100%!important;max-height:100%!important;border-radius:0!important;height:100%!important}
-    /* Header compact */
-    .header-date{display:none!important}
-    /* Filter bar scroll */
-    .filter-bar{overflow-x:auto!important;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
-    .filter-bar::-webkit-scrollbar{display:none}
-    /* Focus/review pages */
-    .focus-stats-grid{grid-template-columns:1fr 1fr!important}
-    .weekly-stats-grid{grid-template-columns:1fr 1fr!important}
-    /* Profile stats */
-    .profile-stat-grid{grid-template-columns:1fr 1fr!important}
-    /* Kanban horizontal scroll */
     .kgrid{display:flex!important;overflow-x:auto!important;gap:12px!important;padding-bottom:8px!important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
     .kgrid::-webkit-scrollbar{display:none}
-    .kgrid>div{min-width:260px!important;flex-shrink:0!important}
+    .kgrid>div{min-width:270px!important;flex-shrink:0!important}
+    .task-form-grid{grid-template-columns:1fr!important}
+    .main-pad{padding:14px!important;padding-bottom:94px!important}
+    .bnav{display:flex!important}
+    .task-card-status{display:none!important}
+    .modal-box{max-width:100%!important;max-height:100%!important;border-radius:0!important;height:100%!important}
+    .header-date{display:none!important}
+    .filter-bar{overflow-x:auto!important;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .filter-bar::-webkit-scrollbar{display:none}
+    .focus-stats-grid{grid-template-columns:1fr 1fr!important}
+    .weekly-stats-grid{grid-template-columns:1fr 1fr!important}
+    .profile-stat-grid{grid-template-columns:1fr 1fr!important}
   }
   @media(max-width:480px){
-    .main-pad{padding:8px!important;padding-bottom:90px!important}
+    .main-pad{padding:10px!important;padding-bottom:94px!important}
     .stat-grid{grid-template-columns:1fr 1fr!important}
   }
 `
 
 // ── Tiny helpers ─────────────────────────────────────────────
-function Spin({s=16}){return <span style={{width:s,height:s,border:'2px solid currentColor',borderTopColor:'transparent',borderRadius:'50%',display:'inline-block',animation:'spin .7s linear infinite',flexShrink:0}}/>}
+function Spin({s=16,c='var(--accent2)'}){return <span style={{width:s,height:s,border:`2px solid ${c}`,borderTopColor:'transparent',borderRadius:'50%',display:'inline-block',animation:'spin .7s linear infinite',flexShrink:0,opacity:.9}}/>}
 
-const INP = {width:'100%',padding:'10px 13px',background:'var(--surface2)',border:'1px solid var(--border2)',borderRadius:10,color:'var(--text)',fontSize:13,outline:'none',transition:'border-color .2s',colorScheme:'dark'}
-const focus = e => e.target.style.borderColor='var(--accent)'
-const blur  = e => e.target.style.borderColor='var(--border2)'
+const INP = {width:'100%',padding:'10px 14px',background:'var(--surface2)',border:'1px solid var(--border2)',borderRadius:10,color:'var(--text)',fontSize:13,outline:'none',transition:'border-color .2s, box-shadow .2s',colorScheme:'dark',fontFamily:'Space Grotesk,sans-serif',letterSpacing:'-0.1px'}
+const focus = e => {e.target.style.borderColor='rgba(139,92,246,.6)';e.target.style.boxShadow='0 0 0 3px rgba(109,40,217,.12)'}
+const blur  = e => {e.target.style.borderColor='var(--border2)';e.target.style.boxShadow='none'}
 
 function Avatar({name,size=28}){
-  const colors=['#7c3aed','#0ea5e9','#f59e0b','#10b981','#ef4444']
-  const bg=colors[(name?.charCodeAt(0)||0)%colors.length]
-  return <div style={{width:size,height:size,borderRadius:size*.28,background:`linear-gradient(135deg,${bg},${bg}bb)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.42,fontWeight:800,color:'#fff',flexShrink:0}}>{(name?.[0]||'?').toUpperCase()}</div>
+  const palettes=[['#6d28d9','#8b5cf6'],['#0369a1','#0ea5e9'],['#b45309','#f59e0b'],['#065f46','#10b981'],['#be123c','#f43f5e'],['#7c3aed','#a78bfa']]
+  const p=palettes[(name?.charCodeAt(0)||0)%palettes.length]
+  return <div style={{width:size,height:size,borderRadius:size*.3,background:`linear-gradient(135deg,${p[0]},${p[1]})`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.4,fontWeight:700,color:'#fff',flexShrink:0,boxShadow:`0 2px 8px ${p[0]}60`}}>{(name?.[0]||'?').toUpperCase()}</div>
 }
 
 // ── Sub-tasks ─────────────────────────────────────────────────
@@ -244,24 +306,53 @@ function TaskModal({task,onClose,onSave,me}){
   const TABS=isEdit?[['details','📝','Details'],['subtasks','☑','Subtasks'],['comments','💬','Comments']]:[['details','📝','Details']]
 
   return(
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',backdropFilter:'blur(10px)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="modal-box" style={{width:'100%',maxWidth:560,maxHeight:'90vh',background:'var(--surface)',border:'1px solid var(--border2)',borderRadius:22,overflow:'hidden',boxShadow:'0 30px 80px rgba(0,0,0,.8)',animation:'modalIn .25s ease',display:'flex',flexDirection:'column'}}>
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.88)',backdropFilter:'blur(16px)',WebkitBackdropFilter:'blur(16px)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal-box" style={{width:'100%',maxWidth:560,maxHeight:'90vh',
+        background:'#0e0e14',
+        border:'1px solid rgba(255,255,255,.1)',
+        borderRadius:22,overflow:'hidden',
+        boxShadow:'0 40px 100px rgba(0,0,0,.9), 0 0 0 1px rgba(109,40,217,.15)',
+        animation:'modalIn .22s cubic-bezier(.4,0,.2,1)',display:'flex',flexDirection:'column'}}>
         
         {/* Header */}
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'18px 22px',borderBottom:'1px solid var(--border)',background:'linear-gradient(135deg,rgba(124,58,237,.07),transparent)',flexShrink:0}}>
-          <div>
-            <h2 style={{fontSize:17,fontWeight:700,color:'var(--text)',fontFamily:'Syne,sans-serif'}}>{isEdit?'✎ Edit Task':'⚡ New Task'}</h2>
-            <p style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{isEdit?'Update details':'Add to your board'}</p>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+          padding:'20px 24px',borderBottom:'1px solid rgba(255,255,255,.06)',
+          background:'linear-gradient(135deg,rgba(109,40,217,.08),transparent)',flexShrink:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <div style={{width:36,height:36,borderRadius:11,
+              background:isEdit?'rgba(109,40,217,.15)':'linear-gradient(135deg,var(--accent),var(--accent2))',
+              border:isEdit?'1px solid rgba(139,92,246,.3)':'none',
+              display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,
+              boxShadow:isEdit?'none':'0 4px 14px var(--glow)'}}>
+              {isEdit?'✎':'⚡'}
+            </div>
+            <div>
+              <h2 style={{fontSize:16,fontWeight:700,color:'var(--text)',
+                fontFamily:'Outfit,sans-serif',margin:0,letterSpacing:'-0.2px'}}>
+                {isEdit?'Edit Task':'New Task'}
+              </h2>
+              <p style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
+                {isEdit?'Update task details':'Add to your board'}
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>✕</button>
+          <button onClick={onClose}
+            style={{width:32,height:32,borderRadius:9,background:'rgba(255,255,255,.05)',
+              border:'1px solid rgba(255,255,255,.08)',color:'var(--muted)',fontSize:14,
+              display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .14s'}}>✕</button>
         </div>
 
         {/* Tabs */}
-        <div style={{display:'flex',gap:4,padding:'10px 22px 0',borderBottom:'1px solid var(--border)',flexShrink:0}}>
+        <div style={{display:'flex',gap:2,padding:'12px 24px 0',
+          borderBottom:'1px solid rgba(255,255,255,.06)',flexShrink:0}}>
           {TABS.map(([key,ic,lb])=>(
-            <button key={key} onClick={()=>setTab(key)} style={{padding:'7px 14px',borderRadius:'9px 9px 0 0',fontSize:12,fontWeight:600,cursor:'pointer',
-              background:tab===key?'var(--surface2)':'transparent',color:tab===key?'var(--accent3)':'var(--muted)',
-              border:tab===key?'1px solid var(--border)':'1px solid transparent',borderBottom:tab===key?'1px solid var(--surface2)':'none',transition:'all .15s'}}>
+            <button key={key} onClick={()=>setTab(key)}
+              style={{padding:'7px 16px',borderRadius:'10px 10px 0 0',fontSize:12,fontWeight:600,
+                cursor:'pointer',transition:'all .15s',fontFamily:'Space Grotesk,sans-serif',
+                background:tab===key?'rgba(109,40,217,.1)':'transparent',
+                color:tab===key?'var(--accent3)':'var(--muted)',
+                border:tab===key?'1px solid rgba(139,92,246,.2)':'1px solid transparent',
+                borderBottom:tab===key?'1px solid rgba(109,40,217,.1)':'none'}}>
               {ic} {lb}
             </button>
           ))}
@@ -498,10 +589,10 @@ function TaskRow({task,onToggle,onEdit,onDelete,idx}){
     if(!task.dueDate)return null
     const d=new Date(task.dueDate)
     const diff=Math.ceil((d-Date.now())/86400000)
-    if(diff<0)return{text:`${-diff}d overdue`,color:'var(--danger)'}
-    if(diff===0)return{text:'Due today',color:'var(--warn)'}
-    if(diff<=2)return{text:`In ${diff}d`,color:'var(--warn)'}
-    return{text:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),color:'var(--muted)'}
+    if(diff<0)return{text:`${-diff}d overdue`,color:'var(--danger)',bg:'var(--danger2)'}
+    if(diff===0)return{text:'Today',color:'var(--warn)',bg:'var(--warn2)'}
+    if(diff<=2)return{text:`${diff}d`,color:'var(--warn)',bg:'var(--warn2)'}
+    return{text:d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}),color:'var(--muted2)',bg:'transparent'}
   }
   const due=dueInfo()
 
@@ -510,36 +601,111 @@ function TaskRow({task,onToggle,onEdit,onDelete,idx}){
     else{setConfirm(true);setTimeout(()=>setConfirm(false),3000)}
   }
 
+  const priorityDot = {HIGH:'var(--danger)',MEDIUM:'var(--warn)',LOW:'var(--success)'}[task.priority]||'var(--muted)'
+
   return(
     <div className="task-row" onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
-      style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:14,marginBottom:8,transition:'all .18s',opacity:isDone?.6:1,animation:`slideIn .35s ease both`,animationDelay:`${idx*.04}s`,position:'relative',overflow:'hidden'}}>
-      <div style={{position:'absolute',left:0,top:0,bottom:0,width:3,background:cfg.color,borderRadius:'3px 0 0 3px'}}/>
-      <button onClick={onToggle} style={{width:22,height:22,borderRadius:7,flexShrink:0,background:isDone?cfg.color:'transparent',border:`2px solid ${isDone?cfg.color:'var(--border2)'}`,color:'#fff',fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s'}}>
-        {isDone?'✓':''}
+      style={{display:'flex',alignItems:'center',gap:12,padding:'13px 16px',
+        background:isDone?'rgba(255,255,255,.01)':'var(--surface)',
+        border:`1px solid ${hover?'var(--border2)':'var(--border)'}`,
+        borderRadius:14,marginBottom:6,transition:'all .16s ease',
+        opacity:isDone?.55:1,
+        animation:'taskPop .3s ease both',animationDelay:`${idx*.035}s`,
+        position:'relative',overflow:'hidden'}}>
+
+      {/* Priority left bar */}
+      <div style={{position:'absolute',left:0,top:'20%',bottom:'20%',width:2.5,
+        background:cfg.color,borderRadius:'0 3px 3px 0',
+        boxShadow:`0 0 8px ${cfg.color}80`,
+        opacity:isDone?.3:1}}/>
+
+      {/* Checkbox */}
+      <button onClick={onToggle}
+        style={{width:22,height:22,borderRadius:7,flexShrink:0,cursor:'pointer',
+          display:'flex',alignItems:'center',justifyContent:'center',
+          transition:'all .16s ease',
+          background:isDone?`linear-gradient(135deg,${cfg.color},${cfg.color}bb)`:'transparent',
+          border:`2px solid ${isDone?cfg.color:'var(--border3)'}`,
+          color:'#fff',fontSize:11,fontWeight:700,
+          boxShadow:isDone?`0 2px 10px ${cfg.color}50`:'none'}}>
+        {isDone&&'✓'}
       </button>
+
+      {/* Content */}
       <div style={{flex:1,minWidth:0}}>
-        <div style={{display:'flex',alignItems:'center',gap:5,marginBottom:2}}>
-          <p style={{fontSize:14,fontWeight:500,color:isDone?'var(--muted)':'var(--text)',textDecoration:isDone?'line-through':'none',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',margin:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:stTotal>0?4:0}}>
+          <p style={{fontSize:14,fontWeight:isDone?400:500,
+            color:isDone?'var(--muted)':'var(--text)',
+            textDecoration:isDone?'line-through':'none',
+            overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',margin:0,
+            letterSpacing:'-0.1px'}}>
             {task.title}
           </p>
-          {task.recurring&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'rgba(96,165,250,.15)',color:'#60a5fa',fontWeight:700,flexShrink:0}}>🔁</span>}
-          {(task.comments?.length||0)>0&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'rgba(255,255,255,.06)',color:'var(--muted)',flexShrink:0}}>💬{task.comments.length}</span>}
+          {task.recurring&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:4,
+            background:'var(--blue2)',color:'var(--blue)',fontWeight:600,flexShrink:0}}>↻</span>}
+          {(task.comments?.length||0)>0&&<span style={{fontSize:10,padding:'1px 6px',borderRadius:4,
+            background:'rgba(255,255,255,.05)',color:'var(--muted2)',flexShrink:0}}>
+            💬{task.comments.length}</span>}
         </div>
         {stTotal>0&&(
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <div style={{width:50,height:3,background:'var(--surface3)',borderRadius:3,overflow:'hidden'}}><div style={{height:'100%',width:`${(st/stTotal)*100}%`,background:'var(--accent)',borderRadius:3}}/></div>
-            <span style={{fontSize:10,color:'var(--muted)'}}>{st}/{stTotal}</span>
+          <div style={{display:'flex',alignItems:'center',gap:7}}>
+            <div style={{width:60,height:2.5,background:'var(--surface3)',borderRadius:4,overflow:'hidden'}}>
+              <div style={{height:'100%',width:`${(st/stTotal)*100}%`,
+                background:`linear-gradient(90deg,var(--accent),var(--accent2))`,borderRadius:4,
+                transition:'width .4s ease'}}/>
+            </div>
+            <span style={{fontSize:10,color:'var(--muted)',fontWeight:500}}>{st}/{stTotal}</span>
           </div>
         )}
-        {task.description&&!stTotal&&<p style={{fontSize:11,color:'var(--muted)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{task.description}</p>}
+        {task.description&&!stTotal&&(
+          <p style={{fontSize:11,color:'var(--muted)',overflow:'hidden',textOverflow:'ellipsis',
+            whiteSpace:'nowrap',marginTop:2,lineHeight:1.4}}>{task.description}</p>
+        )}
       </div>
-      {due&&<span style={{fontSize:11,color:due.color,flexShrink:0,whiteSpace:'nowrap'}}>{due.text}</span>}
-      <span className="task-card-status" style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,background:`${scfg.color}18`,color:scfg.color,border:`1px solid ${scfg.color}30`,flexShrink:0,whiteSpace:'nowrap'}}>{scfg.emoji} {scfg.label}</span>
-      <span style={{fontSize:10,fontWeight:700,padding:'3px 9px',borderRadius:7,background:cfg.bg,color:cfg.color,flexShrink:0,whiteSpace:'nowrap'}}>{cfg.label}</span>
-      <span style={{fontSize:12,fontWeight:700,color:cfg.color,minWidth:32,textAlign:'right',fontFamily:'Syne,sans-serif',flexShrink:0}}>+{cfg.pts}</span>
-      <div style={{display:'flex',gap:5,opacity:hover?1:0,transition:'opacity .15s',flexShrink:0}}>
-        <button onClick={onEdit} style={{width:28,height:28,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border2)',color:'var(--muted)',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>✎</button>
-        <button onClick={handleDel} title={confirmDel?'Confirm?':'Delete'} style={{width:28,height:28,borderRadius:8,background:confirmDel?'rgba(255,107,107,.15)':'var(--surface2)',border:`1px solid ${confirmDel?'var(--danger)':'var(--border2)'}`,color:confirmDel?'var(--danger)':'var(--muted)',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s'}}>
+
+      {/* Tags row */}
+      {due&&(
+        <span style={{fontSize:10,fontWeight:600,padding:'3px 9px',borderRadius:20,
+          background:due.bg,color:due.color,flexShrink:0,whiteSpace:'nowrap',
+          border:`1px solid ${due.color}30`}}>
+          {due.text}
+        </span>
+      )}
+
+      {/* Status badge */}
+      <span className="task-card-status" style={{fontSize:10,fontWeight:600,padding:'3px 10px',
+        borderRadius:20,background:`${scfg.color}15`,color:scfg.color,
+        border:`1px solid ${scfg.color}25`,flexShrink:0,whiteSpace:'nowrap'}}>
+        {scfg.emoji} {scfg.label}
+      </span>
+
+      {/* Priority */}
+      <div style={{display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
+        <div style={{width:6,height:6,borderRadius:'50%',background:priorityDot,
+          boxShadow:`0 0 6px ${priorityDot}80`}}/>
+        <span style={{fontSize:10,fontWeight:600,color:cfg.color}}>{cfg.label}</span>
+      </div>
+
+      {/* XP */}
+      <span style={{fontSize:11,fontWeight:700,color:'var(--accent3)',
+        minWidth:28,textAlign:'right',fontFamily:'Outfit,sans-serif',flexShrink:0}}>
+        +{cfg.pts}
+      </span>
+
+      {/* Actions */}
+      <div className="task-actions" style={{display:'flex',gap:4,flexShrink:0}}>
+        <button onClick={onEdit}
+          style={{width:28,height:28,borderRadius:8,background:'var(--surface2)',
+            border:'1px solid var(--border2)',color:'var(--muted2)',fontSize:12,
+            display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
+            transition:'all .14s'}}>✎</button>
+        <button onClick={handleDel} title={confirmDel?'Confirm?':'Delete'}
+          style={{width:28,height:28,borderRadius:8,cursor:'pointer',
+            display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,
+            transition:'all .14s',
+            background:confirmDel?'var(--danger2)':'var(--surface2)',
+            border:`1px solid ${confirmDel?'var(--danger)30':'var(--border2)'}`,
+            color:confirmDel?'var(--danger)':'var(--muted2)'}}>
           {confirmDel?'!':'✕'}
         </button>
       </div>
@@ -698,10 +864,17 @@ export default function Dashboard(){
   ]
 
   const fBtn=(key,label,count)=>(
-    <button onClick={()=>setFilter(key)} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:9,fontSize:12,fontWeight:500,cursor:'pointer',
-      background:filter===key?'var(--accent)':'var(--surface2)',color:filter===key?'#fff':'var(--muted)',
-      border:filter===key?'none':'1px solid var(--border)',transition:'all .15s'}}>
-      {label}<span style={{fontSize:10,padding:'1px 6px',borderRadius:5,background:filter===key?'rgba(255,255,255,.2)':'var(--surface3)',color:filter===key?'#fff':'var(--muted)'}}>{count}</span>
+    <button className="filter-pill" onClick={()=>setFilter(key)}
+      style={{display:'flex',alignItems:'center',gap:6,padding:'6px 14px',borderRadius:20,fontSize:12,
+        fontWeight:filter===key?600:500,cursor:'pointer',transition:'all .14s',fontFamily:'Space Grotesk,sans-serif',
+        background:filter===key?'linear-gradient(135deg,var(--accent),var(--accent2))':'transparent',
+        color:filter===key?'#fff':'var(--muted2)',
+        border:filter===key?'none':'1px solid var(--border2)',
+        boxShadow:filter===key?'0 2px 12px var(--glow)':'none'}}>
+      {label}
+      <span style={{fontSize:10,padding:'1px 7px',borderRadius:10,fontWeight:600,
+        background:filter===key?'rgba(255,255,255,.2)':'var(--surface3)',
+        color:filter===key?'#fff':'var(--muted)'}}>{count}</span>
     </button>
   )
 
@@ -731,15 +904,20 @@ export default function Dashboard(){
     <>
       <style>{G}</style>
       <div style={{display:'flex',height:'100vh',overflow:'hidden',
-        background:theme==='light'?'#f4f4f9':'var(--bg)',
-        color:theme==='light'?'#1a1a2e':'var(--text)',
-        '--bg':theme==='light'?'#f4f4f9':'#0a0a0f',
-        '--surface':theme==='light'?'#ffffff':'#111118',
-        '--surface2':theme==='light'?'#ededf4':'#1a1a24',
-        '--border':theme==='light'?'rgba(0,0,0,.09)':'rgba(255,255,255,.06)',
-        '--border2':theme==='light'?'rgba(0,0,0,.13)':'rgba(255,255,255,.1)',
-        '--text':theme==='light'?'#1a1a2e':'#f0f0f8',
-        '--muted':theme==='light'?'#555577':'#6b6b8a',
+        background:theme==='light'?'#f0f0f6':'var(--bg)',
+        color:theme==='light'?'#12121e':'var(--text)',
+        '--bg':theme==='light'?'#f0f0f6':'#060608',
+        '--surface':theme==='light'?'#ffffff':'#0e0e14',
+        '--surface2':theme==='light'?'#e8e8f0':'#16161f',
+        '--surface3':theme==='light'?'#dedee8':'#1e1e2a',
+        '--surface4':theme==='light'?'#d4d4e0':'#252533',
+        '--border':theme==='light'?'rgba(0,0,0,.07)':'rgba(255,255,255,.05)',
+        '--border2':theme==='light'?'rgba(0,0,0,.11)':'rgba(255,255,255,.09)',
+        '--border3':theme==='light'?'rgba(0,0,0,.16)':'rgba(255,255,255,.14)',
+        '--text':theme==='light'?'#12121e':'#eeeef5',
+        '--text2':theme==='light'?'#2a2a3e':'#c4c4d4',
+        '--muted':theme==='light'?'#6060808':'#52526e',
+        '--muted2':theme==='light'?'#5555770':'#7474a0',
       }}>
 
         {/* Sidebar overlay */}
@@ -747,25 +925,38 @@ export default function Dashboard(){
 
         {/* Sidebar */}
         {sideOpen&&(
-          <aside className="sidebar open" style={{width:236,flexShrink:0,background:'var(--surface)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',height:'100%',transition:'transform .25s ease'}}>
+          <aside className="sidebar open" style={{width:248,flexShrink:0,
+            background:'rgba(10,10,16,.97)',borderRight:'1px solid var(--border)',
+            display:'flex',flexDirection:'column',height:'100%',
+            transition:'transform .28s cubic-bezier(.4,0,.2,1)',
+            backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
             {/* Logo */}
-            <div style={{display:'flex',alignItems:'center',gap:10,padding:'16px 14px',borderBottom:'1px solid var(--border)'}}>
-              <div style={{width:34,height:34,borderRadius:10,background:'linear-gradient(135deg,var(--accent),var(--accent2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0,boxShadow:'0 4px 12px var(--glow)'}}>⚡</div>
-              <span style={{fontSize:17,fontWeight:800,color:'var(--text)',fontFamily:'Syne,sans-serif'}}>TaskFlow</span>
+            <div style={{display:'flex',alignItems:'center',gap:10,padding:'18px 16px 14px',borderBottom:'1px solid var(--border)'}}>
+              <div style={{width:36,height:36,borderRadius:11,
+                background:'linear-gradient(135deg,var(--accent),var(--accent2))',
+                display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0,
+                boxShadow:'0 4px 16px var(--glow),inset 0 1px 0 rgba(255,255,255,.2)'}}>⚡</div>
+              <div>
+                <span style={{fontSize:16,fontWeight:700,color:'var(--text)',fontFamily:'Outfit,sans-serif',letterSpacing:'-0.3px',display:'block',lineHeight:1.1}}>TaskFlow</span>
+                <span style={{fontSize:9,color:'var(--muted)',fontWeight:500,letterSpacing:'1.5px',textTransform:'uppercase'}}>Productivity OS</span>
+              </div>
             </div>
 
             <nav style={{flex:1,padding:'12px 10px',overflowY:'auto'}}>
-              <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'0 8px',marginBottom:6}}>TASKS</p>
+              <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'2px 11px 6px',fontFamily:'Outfit,sans-serif'}}>TASKS</p>
               {navItems.map(item=>{
                 const active=view==='tasks'&&filter===item.key
                 return(
                   <button key={item.key} className="nav-item" onClick={()=>{setFilter(item.key);setView('tasks')}}
-                    style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',
-                      background:active?'rgba(124,58,237,.1)':'transparent',color:active?'var(--accent2)':'var(--muted)',
-                      border:active?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}>
-                    <span style={{width:17,textAlign:'center'}}>{item.icon}</span>
-                    <span style={{flex:1}}>{item.label}</span>
-                    <span style={{fontSize:10,padding:'1px 7px',borderRadius:6,background:'var(--surface2)',color:'var(--muted)'}}>{item.count}</span>
+                    style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'8px 11px',borderRadius:10,marginBottom:1,cursor:'pointer',fontSize:12,fontWeight:500,textAlign:'left',transition:'all .14s',
+                      background:active?'rgba(109,40,217,.12)':'transparent',
+                      color:active?'var(--accent3)':'var(--muted2)',
+                      border:active?'1px solid rgba(139,92,246,.2)':'1px solid transparent'}}>
+                    <span style={{width:16,textAlign:'center',fontSize:12,opacity:active?1:.7}}>{item.icon}</span>
+                    <span style={{flex:1,letterSpacing:'-0.1px'}}>{item.label}</span>
+                    <span style={{fontSize:10,padding:'1px 8px',borderRadius:8,
+                      background:active?'rgba(139,92,246,.2)':'var(--surface3)',
+                      color:active?'var(--accent3)':'var(--muted)',fontWeight:600}}>{item.count}</span>
                   </button>
                 )
               })}
@@ -786,35 +977,36 @@ export default function Dashboard(){
                 return (
                   <div key={group.key} style={{marginBottom:4}}>
                     {/* Group header */}
-                    <button onClick={()=>toggleNav(group.key)}
+                    <button className="nav-group-btn" onClick={()=>toggleNav(group.key)}
                       style={{width:'100%',display:'flex',alignItems:'center',gap:8,
-                        padding:'8px 10px',borderRadius:10,cursor:'pointer',
-                        background:isGroupActive?'rgba(124,58,237,.06)':'transparent',
-                        border:`1px solid ${isGroupActive?'rgba(124,58,237,.12)':'transparent'}`,
-                        transition:'all .15s'}}>
-                      <span style={{fontSize:14}}>{group.icon}</span>
-                      <span style={{flex:1,fontSize:11,fontWeight:700,letterSpacing:'1px',
-                        textTransform:'uppercase',color:isGroupActive?'var(--accent2)':'var(--muted)',
-                        textAlign:'left'}}>{group.label}</span>
-                      <span style={{fontSize:10,color:'var(--muted)',transition:'transform .2s',
-                        transform:isOpen?'rotate(90deg)':'rotate(0deg)'}}>›</span>
+                        padding:'7px 11px',borderRadius:9,cursor:'pointer',transition:'all .14s',
+                        background:isGroupActive?'rgba(109,40,217,.08)':'transparent',
+                        border:`1px solid ${isGroupActive?'rgba(139,92,246,.15)':'transparent'}`}}>
+                      <span style={{fontSize:13,opacity:isGroupActive?1:.6}}>{group.icon}</span>
+                      <span style={{flex:1,fontSize:10,fontWeight:700,letterSpacing:'1.2px',
+                        textTransform:'uppercase',fontFamily:'Outfit,sans-serif',
+                        color:isGroupActive?'var(--accent3)':'var(--muted)',textAlign:'left'}}>
+                        {group.label}
+                      </span>
+                      <span style={{fontSize:11,color:'var(--muted)',transition:'transform .2s ease',
+                        transform:isOpen?'rotate(90deg)':'rotate(0deg)',display:'block'}}>›</span>
                     </button>
                     {/* Group items */}
                     {isOpen && (
                       <div style={{paddingLeft:8,marginTop:2}}>
                         {group.items.map(([v,ic,lb,badge])=>(
                           <button key={v} className="nav-item" onClick={()=>{setView(v);openGroupForView(v)}}
-                            style={{width:'100%',display:'flex',alignItems:'center',gap:9,
-                              padding:'8px 10px',borderRadius:9,marginBottom:1,cursor:'pointer',
-                              fontSize:12,fontWeight:500,textAlign:'left',transition:'all .12s',
-                              background:view===v?'rgba(124,58,237,.12)':'transparent',
-                              color:view===v?'var(--accent2)':'var(--muted)',
-                              border:view===v?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}>
-                            <span style={{width:16,textAlign:'center',fontSize:13}}>{ic}</span>
-                            <span style={{flex:1}}>{lb}</span>
-                            {badge&&<span style={{fontSize:9,padding:'2px 5px',borderRadius:4,
-                              background:'linear-gradient(135deg,#7c3aed,#a855f7)',
-                              color:'#fff',fontWeight:700}}>{badge}</span>}
+                            style={{width:'100%',display:'flex',alignItems:'center',gap:8,
+                              padding:'7px 10px',borderRadius:8,marginBottom:1,cursor:'pointer',
+                              fontSize:12,fontWeight:view===v?600:400,textAlign:'left',transition:'all .14s',
+                              background:view===v?'rgba(109,40,217,.14)':'transparent',
+                              color:view===v?'var(--accent3)':'var(--muted)',
+                              border:view===v?'1px solid rgba(139,92,246,.22)':'1px solid transparent'}}>
+                            <span style={{width:15,textAlign:'center',fontSize:12,opacity:view===v?1:.65}}>{ic}</span>
+                            <span style={{flex:1,letterSpacing:'-0.1px'}}>{lb}</span>
+                            {badge&&<span style={{fontSize:8,padding:'2px 6px',borderRadius:10,
+                              background:'linear-gradient(135deg,var(--accent),var(--accent2))',
+                              color:'#fff',fontWeight:700,letterSpacing:'.5px'}}>{badge}</span>}
                           </button>
                         ))}
                       </div>
@@ -824,16 +1016,26 @@ export default function Dashboard(){
               })}
 
               {!isAdmin && (
-                <button onClick={()=>navigate('/pricing')} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',background:'rgba(255,217,61,.06)',border:'1px solid rgba(255,217,61,.15)',color:'var(--warn)'}}>
-                  <span style={{width:17,textAlign:'center'}}>⭐</span>
-                  <span style={{flex:1}}>Upgrade to Pro</span>
+                <button onClick={()=>navigate('/pricing')}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'10px 12px',
+                    borderRadius:12,marginBottom:2,cursor:'pointer',textAlign:'left',
+                    background:'linear-gradient(135deg,rgba(245,158,11,.08),rgba(251,191,36,.04))',
+                    border:'1px solid rgba(245,158,11,.2)',transition:'all .18s'}}>
+                  <div style={{width:24,height:24,borderRadius:7,
+                    background:'linear-gradient(135deg,#f59e0b,#fbbf24)',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,flexShrink:0}}>⭐</div>
+                  <span style={{flex:1,fontSize:12,fontWeight:600,color:'#fbbf24',letterSpacing:'-0.1px'}}>Upgrade to Pro</span>
                   {trialDaysLeft!==null&&trialDaysLeft>0&&(
-                    <span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'rgba(255,217,61,.15)',color:'#ffd93d',fontWeight:700,border:'1px solid rgba(255,217,61,.3)'}}>
+                    <span style={{fontSize:9,padding:'2px 7px',borderRadius:8,
+                      background:'rgba(245,158,11,.2)',color:'#fbbf24',
+                      fontWeight:700,border:'1px solid rgba(245,158,11,.3)',whiteSpace:'nowrap'}}>
                       {trialDaysLeft}d left
                     </span>
                   )}
                   {trialDaysLeft===0&&(
-                    <span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'rgba(255,107,107,.15)',color:'#ff6b6b',fontWeight:700,border:'1px solid rgba(255,107,107,.3)'}}>
+                    <span style={{fontSize:9,padding:'2px 7px',borderRadius:8,
+                      background:'rgba(244,63,94,.15)',color:'var(--danger)',
+                      fontWeight:700,border:'1px solid rgba(244,63,94,.3)',whiteSpace:'nowrap'}}>
                       Expired
                     </span>
                   )}
@@ -853,30 +1055,43 @@ export default function Dashboard(){
               )}
 
               {/* Level bar */}
-              <div style={{margin:'14px 2px 0',padding:'13px 11px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                  <div style={{display:'flex',alignItems:'center',gap:7}}>
-                    <span style={{fontSize:17}}>⚡</span>
+              <div style={{margin:'12px 2px 0',padding:'14px 13px',
+                background:'linear-gradient(135deg,rgba(109,40,217,.08),rgba(139,92,246,.04))',
+                border:'1px solid rgba(139,92,246,.15)',borderRadius:14}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:28,height:28,borderRadius:8,
+                      background:'linear-gradient(135deg,var(--accent),var(--accent2))',
+                      display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,
+                      boxShadow:'0 2px 8px var(--glow)'}}>⚡</div>
                     <div>
-                      <p style={{fontSize:12,fontWeight:700,color:'var(--accent2)',fontFamily:'Syne,sans-serif',margin:0}}>Level {lvl.level}</p>
-                      <p style={{fontSize:10,color:'var(--muted)',margin:0}}>{LVL[lvl.level]||'Legend'}</p>
+                      <p style={{fontSize:12,fontWeight:700,color:'var(--accent3)',margin:0,fontFamily:'Outfit,sans-serif'}}>Level {lvl.level}</p>
+                      <p style={{fontSize:9,color:'var(--muted)',margin:0,letterSpacing:'.5px',textTransform:'uppercase'}}>{LVL[lvl.level]||'Legend'}</p>
                     </div>
                   </div>
-                  <span style={{fontSize:11,color:'var(--muted)'}}>{lvl.focusScore}pts</span>
+                  <span style={{fontSize:11,fontWeight:700,color:'var(--accent4)',fontFamily:'Outfit,sans-serif'}}>{lvl.focusScore}<span style={{fontSize:9,color:'var(--muted)',fontWeight:400}}> xp</span></span>
                 </div>
-                <div style={{background:'var(--surface3)',borderRadius:6,height:5,overflow:'hidden'}}>
-                  <div style={{height:'100%',width:`${pct}%`,background:'linear-gradient(90deg,var(--accent),var(--accent2))',borderRadius:6,transition:'width .4s ease'}}/>
+                <div style={{background:'rgba(255,255,255,.06)',borderRadius:8,height:4,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${pct}%`,
+                    background:'linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3))',
+                    borderRadius:8,transition:'width .5s ease',
+                    boxShadow:'0 0 8px var(--accent2)'}}/>
                 </div>
-                <p style={{fontSize:10,color:'var(--muted)',marginTop:5}}>{lvl.nextLevelAt-lvl.focusScore}pts to next</p>
+                <p style={{fontSize:9,color:'var(--muted)',marginTop:5,fontWeight:500}}>{lvl.nextLevelAt-lvl.focusScore} xp to next level</p>
               </div>
 
               {/* Badges */}
               {badges.length>0&&(
-                <div style={{margin:'10px 2px 0',padding:'11px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12}}>
-                  <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:8}}>BADGES</p>
+                <div style={{margin:'10px 2px 0',padding:'12px',
+                  background:'rgba(109,40,217,.05)',border:'1px solid rgba(139,92,246,.1)',borderRadius:12}}>
+                  <p style={{fontSize:9,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',
+                    color:'var(--muted)',marginBottom:9,fontFamily:'Outfit,sans-serif'}}>BADGES</p>
                   <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
                     {badges.map(b=>(
-                      <div key={b.id} title={b.description} style={{padding:'3px 9px',borderRadius:20,fontSize:11,fontWeight:600,background:'rgba(124,58,237,.1)',border:'1px solid rgba(124,58,237,.2)',color:'var(--accent3)',cursor:'default'}}>
+                      <div key={b.id} title={b.description}
+                        style={{padding:'3px 10px',borderRadius:20,fontSize:10,fontWeight:600,
+                          background:'rgba(109,40,217,.12)',border:'1px solid rgba(139,92,246,.2)',
+                          color:'var(--accent4)',cursor:'default',letterSpacing:'.2px'}}>
                         {b.emoji} {b.name}
                       </div>
                     ))}
@@ -885,63 +1100,113 @@ export default function Dashboard(){
               )}
 
               {overdue>0&&(
-                <div style={{margin:'10px 2px 0',padding:'11px',background:'rgba(255,107,107,.07)',border:'1px solid rgba(255,107,107,.2)',borderRadius:12}}>
-                  <p style={{fontSize:11,fontWeight:600,color:'var(--danger)',marginBottom:3}}>⚠ {overdue} Overdue</p>
-                  <p style={{fontSize:11,color:'var(--muted)'}}>{overdue} task{overdue>1?'s':''} past deadline</p>
+                <div style={{margin:'10px 2px 0',padding:'11px 13px',
+                  background:'var(--danger2)',border:'1px solid rgba(244,63,94,.2)',borderRadius:12}}>
+                  <p style={{fontSize:11,fontWeight:700,color:'var(--danger)',marginBottom:2,display:'flex',alignItems:'center',gap:5}}>
+                    <span>⚠</span> {overdue} Overdue
+                  </p>
+                  <p style={{fontSize:10,color:'var(--muted)',fontWeight:500}}>
+                    {overdue} task{overdue>1?'s':''} past deadline
+                  </p>
                 </div>
               )}
             </nav>
 
             {/* Profile */}
-            <div style={{padding:'12px 13px',borderTop:'1px solid var(--border)'}}>
-              <div style={{display:'flex',alignItems:'center',gap:9}}>
-                <div onClick={()=>setView('profile')} style={{cursor:'pointer'}} title="My Profile"><Avatar name={user?.name} size={34}/></div>
+            <div style={{padding:'12px 14px',borderTop:'1px solid var(--border)',
+              background:'rgba(255,255,255,.01)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <div onClick={()=>setView('profile')} style={{cursor:'pointer',flexShrink:0}}
+                  title="My Profile">
+                  <Avatar name={user?.name} size={36}/>
+                </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:5}}>
-                    <p onClick={()=>setView('profile')} style={{fontSize:13,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',margin:0,cursor:'pointer'}}>{user?.name||'User'}</p>
-                    {isAdmin&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'rgba(255,107,107,.15)',color:'var(--danger)',fontWeight:700,flexShrink:0}}>ADMIN</span>}
+                    <p onClick={()=>setView('profile')}
+                      style={{fontSize:13,fontWeight:600,color:'var(--text)',
+                        overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',
+                        margin:0,cursor:'pointer',letterSpacing:'-0.2px'}}>
+                      {user?.name||'User'}
+                    </p>
+                    {isAdmin&&<span style={{fontSize:8,padding:'1px 6px',borderRadius:4,
+                      background:'rgba(244,63,94,.15)',color:'var(--danger)',
+                      fontWeight:700,flexShrink:0,letterSpacing:'.5px'}}>ADMIN</span>}
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}>
-                    <div style={{width:6,height:6,borderRadius:'50%',background:'var(--success)',boxShadow:'0 0 6px rgba(107,203,119,.6)'}}/>
-                    <span style={{fontSize:10,color:'var(--muted)'}}>Lv.{lvl.level} Active</span>
+                  <div style={{display:'flex',alignItems:'center',gap:5,marginTop:3}}>
+                    <div style={{width:5,height:5,borderRadius:'50%',background:'var(--success)',
+                      boxShadow:'0 0 6px rgba(16,185,129,.7)'}}/>
+                    <span style={{fontSize:10,color:'var(--muted)',fontWeight:500}}>
+                      Lv.{lvl.level} · Active
+                    </span>
                   </div>
                 </div>
-                <button onClick={()=>{logout();navigate('/login')}} title="Logout" style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>⏻</button>
+                <button className="btn-ghost" onClick={()=>{logout();navigate('/login')}} title="Logout"
+                  style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',
+                    border:'1px solid var(--border)',color:'var(--muted)',fontSize:13,
+                    display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>⏻</button>
               </div>
             </div>
           </aside>
         )}
 
         {/* Main content */}
-        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',
+          background:'var(--bg)',
+          backgroundImage:'radial-gradient(ellipse at 20% 0%,rgba(109,40,217,.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(59,130,246,.04) 0%,transparent 50%)'}}>
           {/* Header */}
-          <header style={{flexShrink:0,display:'flex',alignItems:'center',gap:11,padding:'12px 22px',background:'var(--surface)',borderBottom:'1px solid var(--border)'}}>
-            <button onClick={()=>setSideOpen(s=>!s)} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>☰</button>
+          <header style={{flexShrink:0,display:'flex',alignItems:'center',gap:10,padding:'12px 20px',
+            background:'rgba(14,14,20,.95)',borderBottom:'1px solid var(--border)',
+            backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
+            <button className="btn-ghost" onClick={()=>setSideOpen(s=>!s)}
+              style={{width:34,height:34,borderRadius:10,background:'var(--surface2)',
+                border:'1px solid var(--border)',color:'var(--muted2)',fontSize:16,
+                display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0}}>☰</button>
             <div style={{flex:1,minWidth:0}}>
-              <h1 style={{fontSize:15,fontWeight:700,color:'var(--text)',fontFamily:'Syne,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerTitle()}</h1>
-              <p className="header-date" style={{fontSize:11,color:'var(--muted)',marginTop:1}}>{new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}</p>
+              <h1 style={{fontSize:15,fontWeight:600,color:'var(--text)',fontFamily:'Outfit,sans-serif',
+                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',letterSpacing:'-0.2px'}}>{headerTitle()}</h1>
+              <p className="header-date" style={{fontSize:10,color:'var(--muted)',marginTop:1,fontWeight:500}}>
+                {new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}
+              </p>
             </div>
             <NotificationBell />
             {view==='tasks'&&(
               <>
                 <div className="header-search" style={{position:'relative'}}>
-                  <span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',color:'var(--muted)',fontSize:13,pointerEvents:'none'}}>⌕</span>
-                  <input type="text" placeholder="Search…" value={search} onChange={e=>setSearch(e.target.value)}
-                    style={{paddingLeft:30,paddingRight:12,paddingTop:8,paddingBottom:8,borderRadius:10,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--text)',fontSize:13,outline:'none',width:170}}
-                    onFocus={focus} onBlur={blur}/>
+                  <span style={{position:'absolute',left:11,top:'50%',transform:'translateY(-50%)',
+                    color:'var(--muted)',fontSize:13,pointerEvents:'none'}}>⌕</span>
+                  <input type="text" placeholder="Search tasks…" value={search} onChange={e=>setSearch(e.target.value)}
+                    style={{paddingLeft:32,paddingRight:12,paddingTop:8,paddingBottom:8,
+                      borderRadius:10,background:'var(--surface2)',border:'1px solid var(--border)',
+                      color:'var(--text)',fontSize:13,outline:'none',width:180,transition:'all .2s',
+                      fontFamily:'Space Grotesk,sans-serif'}}
+                    onFocus={e=>{e.target.style.borderColor='var(--accent2)';e.target.style.width='210px'}}
+                    onBlur={e=>{e.target.style.borderColor='var(--border)';e.target.style.width='180px'}}/>
                 </div>
-                {/* View switcher */}
-                <div style={{display:'flex',gap:3,background:'var(--surface2)',borderRadius:9,padding:3,border:'1px solid var(--border)'}}>
-                  {[['list','☰'],['kanban','⊞'],['calendar','📅']].map(([mode,ic])=>(
-                    <button key={mode} onClick={()=>setViewMode(mode)} style={{width:30,height:26,borderRadius:6,border:'none',fontSize:13,cursor:'pointer',transition:'all .15s',background:viewMode===mode?'var(--accent)':'transparent',color:viewMode===mode?'#fff':'var(--muted)'}}>
+                <div style={{display:'flex',gap:2,background:'var(--surface2)',borderRadius:10,padding:3,border:'1px solid var(--border)'}}>
+                  {[['list','≡'],['kanban','⊞'],['calendar','▦']].map(([mode,ic])=>(
+                    <button key={mode} onClick={()=>setViewMode(mode)}
+                      style={{width:30,height:26,borderRadius:7,border:'none',fontSize:14,cursor:'pointer',
+                        transition:'all .14s',
+                        background:viewMode===mode?'var(--accent)':'transparent',
+                        color:viewMode===mode?'#fff':'var(--muted)',
+                        boxShadow:viewMode===mode?'0 2px 8px var(--glow)':'none'}}>
                       {ic}
                     </button>
                   ))}
                 </div>
-                {overdue>0&&<div style={{padding:'5px 11px',borderRadius:8,background:'rgba(255,107,107,.1)',border:'1px solid rgba(255,107,107,.2)',color:'var(--danger)',fontSize:12,fontWeight:600,flexShrink:0}}>⚠ {overdue}</div>}
-                <button onClick={openNew} style={{padding:'9px 18px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:13,fontWeight:700,boxShadow:'0 4px 14px var(--glow)',flexShrink:0,cursor:'pointer'}}
-                  onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'}
-                  onMouseLeave={e=>e.currentTarget.style.transform='none'}>
+                {overdue>0&&(
+                  <div style={{padding:'5px 10px',borderRadius:8,background:'var(--danger2)',
+                    border:'1px solid rgba(244,63,94,.25)',color:'var(--danger)',
+                    fontSize:11,fontWeight:700,flexShrink:0,animation:'pulseRing 2s infinite'}}>
+                    ⚠ {overdue}
+                  </div>
+                )}
+                <button className="btn-primary" onClick={openNew}
+                  style={{padding:'9px 18px',borderRadius:10,border:'none',
+                    background:'linear-gradient(135deg,var(--accent),var(--accent2))',
+                    color:'#fff',fontSize:13,fontWeight:600,letterSpacing:'-0.1px',
+                    boxShadow:'0 4px 16px var(--glow)',flexShrink:0,cursor:'pointer',
+                    fontFamily:'Space Grotesk,sans-serif'}}>
                   + New Task
                 </button>
               </>
@@ -973,17 +1238,20 @@ export default function Dashboard(){
                 {/* Stats */}
                 <div className="stat-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:22}}>
                   {[
-                    {label:'Completed',value:stats?.completedTasks??done,sub:`of ${tasks.length} total`,color:'var(--success)',icon:'✓',delay:0},
-                    {label:'Focus Score',value:stats?.focusScore??0,sub:'points earned',color:'var(--accent2)',icon:'⚡',delay:70},
-                    {label:'Day Streak',value:stats?.streak??0,sub:'days in a row',color:'var(--warn)',icon:'🔥',delay:140},
-                    {label:'Pending',value:pending,sub:`${high} high priority`,color:'var(--danger)',icon:'⏳',delay:210},
+                    {label:'Completed',value:stats?.completedTasks??done,sub:`of ${tasks.length} tasks`,color:'var(--success)',glow:'rgba(16,185,129,.2)',icon:'✓',delay:0},
+                    {label:'Focus Score',value:stats?.focusScore??0,sub:'XP earned',color:'var(--accent3)',glow:'rgba(139,92,246,.2)',icon:'⚡',delay:60},
+                    {label:'Streak',value:stats?.streak??0,sub:'days running',color:'var(--warn)',glow:'rgba(245,158,11,.2)',icon:'🔥',delay:120},
+                    {label:'Pending',value:pending,sub:`${high} high priority`,color:'var(--danger)',glow:'rgba(244,63,94,.2)',icon:'◎',delay:180},
                   ].map(s=>(
-                    <div key={s.label} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:16,padding:'18px 20px',position:'relative',overflow:'hidden',animation:`fadeUp .5s ease both`,animationDelay:`${s.delay}ms`}}>
-                      <div style={{position:'absolute',top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${s.color},transparent)`}}/>
-                      <div style={{position:'absolute',top:12,right:14,fontSize:20,opacity:.08}}>{s.icon}</div>
-                      <p style={{fontSize:9,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:9,fontFamily:'Syne,sans-serif'}}>{s.label}</p>
-                      <p style={{fontSize:32,fontWeight:800,color:s.color,lineHeight:1,marginBottom:5,fontFamily:'Syne,sans-serif'}}>{s.value}</p>
-                      <p style={{fontSize:11,color:'var(--muted)'}}>{s.sub}</p>
+                    <div key={s.label} className="stat-card" style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:18,padding:'20px 22px',position:'relative',overflow:'hidden',animation:'fadeUp .5s ease both',animationDelay:`${s.delay}ms`}}>
+                      <div style={{position:'absolute',top:0,left:0,right:0,height:1.5,background:`linear-gradient(90deg,${s.color},${s.color}00)`}}/>
+                      <div style={{position:'absolute',bottom:-10,right:-10,width:70,height:70,borderRadius:'50%',background:s.glow,filter:'blur(20px)',pointerEvents:'none'}}/>
+                      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
+                        <p style={{fontSize:10,fontWeight:600,letterSpacing:'1.5px',textTransform:'uppercase',color:'var(--muted)',fontFamily:'Outfit,sans-serif'}}>{s.label}</p>
+                        <div style={{width:28,height:28,borderRadius:8,background:`${s.color}15`,border:`1px solid ${s.color}25`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,color:s.color}}>{s.icon}</div>
+                      </div>
+                      <p style={{fontSize:34,fontWeight:800,color:s.color,lineHeight:1,marginBottom:4,fontFamily:'Outfit,sans-serif',letterSpacing:'-1px',animation:'countUp .5s ease both'}}>{s.value}</p>
+                      <p style={{fontSize:11,color:'var(--muted)',fontWeight:500}}>{s.sub}</p>
                     </div>
                   ))}
                 </div>
@@ -998,13 +1266,23 @@ export default function Dashboard(){
                       <span style={{marginLeft:'auto',fontSize:11,color:'var(--muted)'}}>{filtered.length} task{filtered.length!==1?'s':''}</span>
                     </div>
                     {loading
-                      ? [1,2,3,4].map(i=><div key={i} className="skel" style={{height:64,marginBottom:8}}/>)
+                      ? [1,2,3,4,5].map(i=>(
+                          <div key={i} className="skel" style={{height:70,marginBottom:7,
+                            borderRadius:14,opacity:1-(i*0.12)}}/>
+                        ))
                       : filtered.length===0
                         ? <div style={{textAlign:'center',padding:'70px 0',animation:'fadeUp .4s ease'}}>
-                            <div style={{fontSize:48,marginBottom:14}}>{search?'🔍':filter==='DONE'?'🎉':'📋'}</div>
-                            <p style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6,fontFamily:'Syne,sans-serif'}}>{search?'No results':filter==='DONE'?'No completed tasks':'No tasks yet'}</p>
-                            <p style={{fontSize:13,color:'var(--muted)',marginBottom:22}}>{search?'Try a different search':'Click "+ New Task" to get started'}</p>
-                            {!search&&<button onClick={openNew} style={{padding:'10px 26px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer'}}>+ Create First Task</button>}
+                            <div style={{fontSize:60,marginBottom:16,filter:'grayscale(.1)',animation:'fadeIn .4s ease'}}>{search?'🔍':filter==='DONE'?'🎉':'✦'}</div>
+                            <p style={{fontSize:18,fontWeight:700,color:'var(--text)',marginBottom:8,fontFamily:'Outfit,sans-serif',letterSpacing:'-0.3px'}}>{search?'No results found':filter==='DONE'?'Nothing completed yet':'Start your first task'}</p>
+                            <p style={{fontSize:13,color:'var(--muted)',marginBottom:28,maxWidth:260,lineHeight:1.6}}>{search?'Try different keywords':'Add a task and start crushing your goals'}</p>
+                            {!search&&<button className="empty-state-btn" onClick={openNew}
+                              style={{padding:'11px 28px',borderRadius:12,border:'none',
+                                background:'linear-gradient(135deg,var(--accent),var(--accent2))',
+                                color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',
+                                boxShadow:'0 4px 20px var(--glow)',letterSpacing:'-0.1px',
+                                fontFamily:'Space Grotesk,sans-serif'}}>
+                              + Create First Task
+                            </button>}
                           </div>
                         : filtered.map((t,i)=><TaskRow key={t.id} task={t} idx={i} onToggle={()=>handleToggle(t.id)} onEdit={()=>openEdit(t)} onDelete={()=>handleDelete(t.id)}/>)
                     }
@@ -1064,10 +1342,14 @@ export default function Dashboard(){
         <nav className="bnav" style={{justifyContent:'space-around',alignItems:'center'}}>
           {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['pomodoro','⏱','Timer'],['leaderboard','🏆','Ranks'],['profile','👤','Me']].map(([v,ic,lb])=>(
             <button key={v} className="bnav-btn" onClick={()=>{setView(v);setSideOpen(false)}}
-              style={{color:view===v?'var(--accent2)':'var(--muted)',fontWeight:view===v?700:400}}>
-              <span style={{fontSize:20,lineHeight:1,display:'block',
-                transform:view===v?'translateY(-1px)':'none',transition:'transform .15s'}}>{ic}</span>
-              <span style={{fontSize:9,letterSpacing:'.3px'}}>{lb}</span>
+              style={{color:view===v?'var(--accent3)':'var(--muted)',fontWeight:view===v?600:400}}>
+              <div style={{width:36,height:28,display:'flex',alignItems:'center',justifyContent:'center',
+                borderRadius:10,transition:'all .15s',
+                background:view===v?'rgba(109,40,217,.15)':'transparent',
+                border:view===v?'1px solid rgba(139,92,246,.2)':'1px solid transparent'}}>
+                <span style={{fontSize:17,lineHeight:1}}>{ic}</span>
+              </div>
+              <span style={{fontSize:9,letterSpacing:'.3px',fontFamily:'Space Grotesk,sans-serif'}}>{lb}</span>
               {view===v&&<div className="bnav-dot"/>}
             </button>
           ))}
@@ -1078,11 +1360,19 @@ export default function Dashboard(){
 
         {/* Toast */}
         {toast&&(
-          <div style={{position:'fixed',bottom:80,right:16,padding:'12px 18px',borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,
-            background:toast.type==='success'?'rgba(107,203,119,.1)':'rgba(255,107,107,.1)',
-            border:`1px solid ${toast.type==='success'?'rgba(107,203,119,.3)':'rgba(255,107,107,.3)'}`,
+          <div style={{position:'fixed',bottom:88,right:20,zIndex:999,
+            padding:'12px 18px',borderRadius:14,
+            background:'rgba(10,10,16,.96)',
+            border:`1px solid ${toast.type==='success'?'rgba(16,185,129,.4)':'rgba(244,63,94,.4)'}`,
             color:toast.type==='success'?'var(--success)':'var(--danger)',
-            backdropFilter:'blur(12px)',boxShadow:'0 8px 30px rgba(0,0,0,.4)',animation:'fadeUp .3s ease'}}>
+            fontSize:13,fontWeight:600,letterSpacing:'-0.1px',
+            boxShadow:'0 8px 40px rgba(0,0,0,.6)',
+            backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',
+            animation:'fadeUp .25s ease',display:'flex',alignItems:'center',gap:9,
+            fontFamily:'Space Grotesk,sans-serif'}}>
+            <div style={{width:7,height:7,borderRadius:'50%',flexShrink:0,
+              background:toast.type==='success'?'var(--success)':'var(--danger)',
+              boxShadow:`0 0 8px ${toast.type==='success'?'var(--success)':'var(--danger)'}`}}/>
             {toast.msg}
           </div>
         )}
