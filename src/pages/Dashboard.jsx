@@ -25,7 +25,7 @@ import EmailToTask from './EmailToTask'
 import GlobalQuickAdd    from '../components/GlobalQuickAdd'
 import TaskDetailDrawer  from '../components/TaskDetailDrawer'
 import AIBreakdown       from '../components/AIBreakdown'
-import { useOffline, OfflineBanner } from '../hooks/useOffline'
+import { useOffline, OfflineBanner } from '../hooks/useOffline.jsx'
 
 const PRI = {
   HIGH:   { color:'#ff6b6b', bg:'rgba(255,107,107,.12)', label:'High',   pts:30, emoji:'🔴' },
