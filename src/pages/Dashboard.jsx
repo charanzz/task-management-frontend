@@ -131,7 +131,7 @@ const G = `
 
   /* ── Bottom nav ── */
   .bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;
-    background:rgba(14,14,20,.92);border-top:1px solid var(--border);
+    background:var(--surface);border-top:1px solid var(--border);
     padding:6px 0 env(safe-area-inset-bottom,6px);backdrop-filter:blur(24px);
     -webkit-backdrop-filter:blur(24px)}
   .bnav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;
@@ -142,6 +142,15 @@ const G = `
 
   /* ── Glass card utility ── */
   .glass{background:rgba(22,22,31,.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+
+  /* ── Theme Picker ── */
+  @keyframes pickerIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes themeIconSpin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.8)}100%{transform:rotate(360deg) scale(1)}}
+  .theme-option{transition:all .16s ease;cursor:pointer;position:relative;overflow:hidden}
+  .theme-option:hover{transform:translateY(-2px)}
+  .theme-option.active{box-shadow:0 4px 20px rgba(109,40,217,.35)}
+  .theme-btn-trigger{transition:all .2s ease}
+  .theme-btn-trigger:hover{transform:scale(1.05)}
 
   /* ── Mobile ── */
   @media(max-width:768px){
@@ -170,12 +179,26 @@ const G = `
     .main-pad{padding:10px!important;padding-bottom:94px!important}
     .stat-grid{grid-template-columns:1fr 1fr!important}
   }
+
+  /* ── Light theme overrides ── */
+  [data-theme="light"] .skel{background:linear-gradient(90deg,#e8e8f0 0%,#f0f0f8 50%,#e8e8f0 100%)!important}
+  [data-theme="light"] ::-webkit-scrollbar-thumb{background:#c8c8dc}
+  [data-theme="light"] .task-row:hover{background:#ececf5!important}
+  [data-theme="light"] .nav-item:hover{background:#e8e8f2!important;color:#2c2c42!important}
+  [data-theme="light"] .nav-group-btn:hover{background:rgba(109,40,217,.06)!important}
+  [data-theme="light"] .btn-ghost:hover{background:#e8e8f2!important;color:#2c2c42!important}
+  [data-theme="light"] .cal-day:hover{background:#e8e8f2!important}
+  [data-theme="light"] .stat-card{border-color:rgba(90,70,180,.1)!important}
+  [data-theme="light"] .stat-card:hover{border-color:rgba(90,70,180,.2)!important;box-shadow:0 8px 32px rgba(109,40,217,.08)!important}
+  [data-theme="light"] .kcol{background:#ececf5!important;border-color:rgba(90,70,180,.1)!important}
+  [data-theme="light"] .kcard:hover{box-shadow:0 8px 32px rgba(109,40,217,.12)!important}
+  [data-theme="light"] .modal-box{box-shadow:0 40px 80px rgba(0,0,0,.12), 0 0 0 1px rgba(109,40,217,.1)!important}
 `
 
 // ── Tiny helpers ─────────────────────────────────────────────
 function Spin({s=16,c='var(--accent2)'}){return <span style={{width:s,height:s,border:`2px solid ${c}`,borderTopColor:'transparent',borderRadius:'50%',display:'inline-block',animation:'spin .7s linear infinite',flexShrink:0,opacity:.9}}/>}
 
-const INP = {width:'100%',padding:'10px 14px',background:'var(--surface2)',border:'1px solid var(--border2)',borderRadius:10,color:'var(--text)',fontSize:13,outline:'none',transition:'border-color .2s, box-shadow .2s',colorScheme:'dark',fontFamily:'Space Grotesk,sans-serif',letterSpacing:'-0.1px'}
+const INP = {width:'100%',padding:'10px 14px',background:'var(--surface2)',border:'1px solid var(--border2)',borderRadius:10,color:'var(--text)',fontSize:13,outline:'none',transition:'border-color .2s, box-shadow .2s',colorScheme:resolvedTheme,fontFamily:'Space Grotesk,sans-serif',letterSpacing:'-0.1px'}
 const focus = e => {e.target.style.borderColor='rgba(139,92,246,.6)';e.target.style.boxShadow='0 0 0 3px rgba(109,40,217,.12)'}
 const blur  = e => {e.target.style.borderColor='var(--border2)';e.target.style.boxShadow='none'}
 
@@ -308,7 +331,7 @@ function TaskModal({task,onClose,onSave,me}){
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.88)',backdropFilter:'blur(16px)',WebkitBackdropFilter:'blur(16px)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal-box" style={{width:'100%',maxWidth:560,maxHeight:'90vh',
-        background:'#0e0e14',
+        background:resolvedTheme==='light'?'#ffffff':'#0e0e14',
         border:'1px solid rgba(255,255,255,.1)',
         borderRadius:22,overflow:'hidden',
         boxShadow:'0 40px 100px rgba(0,0,0,.9), 0 0 0 1px rgba(109,40,217,.15)',
@@ -317,7 +340,7 @@ function TaskModal({task,onClose,onSave,me}){
         {/* Header */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',
           padding:'20px 24px',borderBottom:'1px solid rgba(255,255,255,.06)',
-          background:'linear-gradient(135deg,rgba(109,40,217,.08),transparent)',flexShrink:0}}>
+          background:resolvedTheme==='light'?'linear-gradient(135deg,rgba(109,40,217,.05),transparent)':'linear-gradient(135deg,rgba(109,40,217,.08),transparent)',flexShrink:0}}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <div style={{width:36,height:36,borderRadius:11,
               background:isEdit?'rgba(109,40,217,.15)':'linear-gradient(135deg,var(--accent),var(--accent2))',
@@ -767,6 +790,19 @@ export default function Dashboard(){
     if (grp) setNavOpen(p=>({...p,[grp[0]]:true}))
   }
   const [theme,setTheme]=useState(()=>localStorage.getItem('tf_theme')||'dark')
+  const [showThemePicker,setShowThemePicker]=useState(false)
+  const systemDark = typeof window!=='undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const resolvedTheme = theme==='system' ? (systemDark?'dark':'light') : theme
+  const saveTheme = (t) => { setTheme(t); localStorage.setItem('tf_theme',t); setShowThemePicker(false) }
+  // Close theme picker on outside click
+  useEffect(()=>{
+    if(!showThemePicker) return
+    const h = e => {
+      if(!e.target.closest('.theme-picker-area')) setShowThemePicker(false)
+    }
+    setTimeout(()=>document.addEventListener('click',h),10)
+    return()=>document.removeEventListener('click',h)
+  },[showThemePicker])
   const [view,setView]=useState('tasks')
   const [viewMode,setViewMode]=useState('list')
   const [roleFromApi,setRoleFromApi]=useState('USER')
@@ -903,21 +939,23 @@ export default function Dashboard(){
   return(
     <>
       <style>{G}</style>
-      <div style={{display:'flex',height:'100vh',overflow:'hidden',
-        background:theme==='light'?'#f0f0f6':'var(--bg)',
-        color:theme==='light'?'#12121e':'var(--text)',
-        '--bg':theme==='light'?'#f0f0f6':'#060608',
-        '--surface':theme==='light'?'#ffffff':'#0e0e14',
-        '--surface2':theme==='light'?'#e8e8f0':'#16161f',
-        '--surface3':theme==='light'?'#dedee8':'#1e1e2a',
-        '--surface4':theme==='light'?'#d4d4e0':'#252533',
-        '--border':theme==='light'?'rgba(0,0,0,.07)':'rgba(255,255,255,.05)',
-        '--border2':theme==='light'?'rgba(0,0,0,.11)':'rgba(255,255,255,.09)',
-        '--border3':theme==='light'?'rgba(0,0,0,.16)':'rgba(255,255,255,.14)',
-        '--text':theme==='light'?'#12121e':'#eeeef5',
-        '--text2':theme==='light'?'#2a2a3e':'#c4c4d4',
-        '--muted':theme==='light'?'#6060808':'#52526e',
-        '--muted2':theme==='light'?'#5555770':'#7474a0',
+      <div data-theme={resolvedTheme} style={{display:'flex',height:'100vh',overflow:'hidden',
+        background:resolvedTheme==='light'?'#f5f5fb':'var(--bg)',
+        color:resolvedTheme==='light'?'#13131f':'var(--text)',
+        '--bg':resolvedTheme==='light'?'#f5f5fb':'#060608',
+        '--surface':resolvedTheme==='light'?'#ffffff':'#0e0e14',
+        '--surface2':resolvedTheme==='light'?'#ececf5':'#16161f',
+        '--surface3':resolvedTheme==='light'?'#e2e2ee':'#1e1e2a',
+        '--surface4':resolvedTheme==='light'?'#d8d8e8':'#252533',
+        '--border':resolvedTheme==='light'?'rgba(90,70,180,.09)':'rgba(255,255,255,.05)',
+        '--border2':resolvedTheme==='light'?'rgba(90,70,180,.14)':'rgba(255,255,255,.09)',
+        '--border3':resolvedTheme==='light'?'rgba(90,70,180,.22)':'rgba(255,255,255,.14)',
+        '--text':resolvedTheme==='light'?'#13131f':'#eeeef5',
+        '--text2':resolvedTheme==='light'?'#2c2c42':'#c4c4d4',
+        '--muted':resolvedTheme==='light'?'#7070a0':'#52526e',
+        '--muted2':resolvedTheme==='light'?'#8888bb':'#7474a0',
+        '--glow':resolvedTheme==='light'?'rgba(109,40,217,.2)':'rgba(109,40,217,.4)',
+        '--accent':'#6d28d9','--accent2':'#8b5cf6','--accent3':'#a78bfa','--accent4':'#c4b5fd',
       }}>
 
         {/* Sidebar overlay */}
@@ -926,7 +964,7 @@ export default function Dashboard(){
         {/* Sidebar */}
         {sideOpen&&(
           <aside className="sidebar open" style={{width:248,flexShrink:0,
-            background:'rgba(10,10,16,.97)',borderRight:'1px solid var(--border)',
+            background:resolvedTheme==='light'?'rgba(248,248,255,.98)':'rgba(10,10,16,.97)',borderRight:'1px solid var(--border)',
             display:'flex',flexDirection:'column',height:'100%',
             transition:'transform .28s cubic-bezier(.4,0,.2,1)',
             backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
@@ -1112,12 +1150,72 @@ export default function Dashboard(){
               )}
             </nav>
 
+            {/* Theme Picker Popup */}
+            <div className="theme-picker-area" style={{position:'relative'}}>
+            {showThemePicker&&(
+              <div style={{position:'absolute',bottom:80,left:12,right:12,zIndex:200,
+                background:resolvedTheme==='light'?'#ffffff':'#12121c',
+                border:`1px solid ${resolvedTheme==='light'?'rgba(90,70,180,.18)':'rgba(139,92,246,.25)'}`,
+                borderRadius:18,padding:16,
+                boxShadow:resolvedTheme==='light'
+                  ?'0 -8px 40px rgba(109,40,217,.12), 0 0 0 1px rgba(109,40,217,.06)'
+                  :'0 -8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(139,92,246,.1)',
+                animation:'pickerIn .22s cubic-bezier(.4,0,.2,1)'}}>
+                <p style={{fontSize:10,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',
+                  color:'var(--muted)',marginBottom:12,fontFamily:'Outfit,sans-serif'}}>APPEARANCE</p>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                  {[
+                    {id:'light', label:'Light', icon:'☀️',
+                     preview:['#f5f5fb','#ffffff','#6d28d9'],
+                     desc:'Clean & bright'},
+                    {id:'dark', label:'Dark', icon:'🌙',
+                     preview:['#060608','#0e0e14','#8b5cf6'],
+                     desc:'Easy on eyes'},
+                    {id:'system', label:'System', icon:'💻',
+                     preview:['#1a1a2e','#6d28d9','#a78bfa'],
+                     desc:'Auto detect'},
+                  ].map(opt=>(
+                    <button key={opt.id}
+                      className={`theme-option${theme===opt.id?' active':''}`}
+                      onClick={()=>saveTheme(opt.id)}
+                      style={{padding:'12px 8px',borderRadius:13,border:'none',cursor:'pointer',
+                        background:theme===opt.id
+                          ?'linear-gradient(135deg,rgba(109,40,217,.18),rgba(139,92,246,.1))'
+                          :resolvedTheme==='light'?'rgba(109,40,217,.04)':'rgba(255,255,255,.04)',
+                        outline:theme===opt.id
+                          ?'1.5px solid rgba(139,92,246,.5)':'1.5px solid transparent',
+                        display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                      {/* Mini preview */}
+                      <div style={{width:44,height:32,borderRadius:8,overflow:'hidden',
+                        border:'1px solid rgba(255,255,255,.1)',position:'relative',flexShrink:0}}>
+                        <div style={{position:'absolute',inset:0,background:opt.preview[0]}}/>
+                        <div style={{position:'absolute',top:4,left:4,right:4,height:8,
+                          borderRadius:4,background:opt.preview[1],
+                          boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+                        <div style={{position:'absolute',bottom:4,left:4,width:16,height:5,
+                          borderRadius:3,background:opt.preview[2]}}/>
+                        {theme===opt.id&&(
+                          <div style={{position:'absolute',top:2,right:2,width:8,height:8,
+                            borderRadius:'50%',background:'var(--accent2)',
+                            boxShadow:'0 0 6px var(--accent2)'}}/>
+                        )}
+                      </div>
+                      <span style={{fontSize:11,fontWeight:theme===opt.id?700:500,
+                        color:theme===opt.id?'var(--accent3)':'var(--muted2)',letterSpacing:'-0.1px'}}>
+                        {opt.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Profile */}
             <div style={{padding:'12px 14px',borderTop:'1px solid var(--border)',
-              background:'rgba(255,255,255,.01)'}}>
+              background:resolvedTheme==='light'?'rgba(240,240,252,.6)':'rgba(255,255,255,.01)',
+              position:'relative'}}>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <div onClick={()=>setView('profile')} style={{cursor:'pointer',flexShrink:0}}
-                  title="My Profile">
+                <div onClick={()=>setView('profile')} style={{cursor:'pointer',flexShrink:0}}>
                   <Avatar name={user?.name} size={36}/>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
@@ -1135,27 +1233,45 @@ export default function Dashboard(){
                   <div style={{display:'flex',alignItems:'center',gap:5,marginTop:3}}>
                     <div style={{width:5,height:5,borderRadius:'50%',background:'var(--success)',
                       boxShadow:'0 0 6px rgba(16,185,129,.7)'}}/>
-                    <span style={{fontSize:10,color:'var(--muted)',fontWeight:500}}>
-                      Lv.{lvl.level} · Active
-                    </span>
+                    <span style={{fontSize:10,color:'var(--muted)',fontWeight:500}}>Lv.{lvl.level} · Active</span>
                   </div>
                 </div>
+
+                {/* Beautiful theme toggle button */}
+                <button className="theme-btn-trigger"
+                  onClick={()=>setShowThemePicker(p=>!p)}
+                  title="Change theme"
+                  style={{width:30,height:30,borderRadius:9,cursor:'pointer',
+                    display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,
+                    background:showThemePicker
+                      ?'linear-gradient(135deg,rgba(109,40,217,.2),rgba(139,92,246,.1))'
+                      :'var(--surface2)',
+                    border:`1px solid ${showThemePicker?'rgba(139,92,246,.4)':'var(--border)'}`,
+                    color:showThemePicker?'var(--accent3)':'var(--muted2)',
+                    boxShadow:showThemePicker?'0 0 12px rgba(109,40,217,.25)':'none',
+                    transition:'all .18s ease'}}>
+                  {resolvedTheme==='light'?'☀️':'🌙'}
+                </button>
+
                 <button className="btn-ghost" onClick={()=>{logout();navigate('/login')}} title="Logout"
                   style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',
                     border:'1px solid var(--border)',color:'var(--muted)',fontSize:13,
                     display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>⏻</button>
               </div>
             </div>
+            </div>{/* /theme-picker-area */}
           </aside>
         )}
 
         {/* Main content */}
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',
           background:'var(--bg)',
-          backgroundImage:'radial-gradient(ellipse at 20% 0%,rgba(109,40,217,.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(59,130,246,.04) 0%,transparent 50%)'}}>
+          backgroundImage:resolvedTheme==='light'
+            ?'radial-gradient(ellipse at 20% 0%,rgba(109,40,217,.04) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(59,130,246,.03) 0%,transparent 50%)'
+            :'radial-gradient(ellipse at 20% 0%,rgba(109,40,217,.06) 0%,transparent 60%),radial-gradient(ellipse at 80% 100%,rgba(59,130,246,.04) 0%,transparent 50%)'}}>
           {/* Header */}
           <header style={{flexShrink:0,display:'flex',alignItems:'center',gap:10,padding:'12px 20px',
-            background:'rgba(14,14,20,.95)',borderBottom:'1px solid var(--border)',
+            background:resolvedTheme==='light'?'rgba(250,250,255,.97)':'rgba(14,14,20,.95)',borderBottom:'1px solid var(--border)',
             backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)'}}>
             <button className="btn-ghost" onClick={()=>setSideOpen(s=>!s)}
               style={{width:34,height:34,borderRadius:10,background:'var(--surface2)',
@@ -1362,7 +1478,7 @@ export default function Dashboard(){
         {toast&&(
           <div style={{position:'fixed',bottom:88,right:20,zIndex:999,
             padding:'12px 18px',borderRadius:14,
-            background:'rgba(10,10,16,.96)',
+            background:resolvedTheme==='light'?'rgba(255,255,255,.97)':'rgba(10,10,16,.96)',
             border:`1px solid ${toast.type==='success'?'rgba(16,185,129,.4)':'rgba(244,63,94,.4)'}`,
             color:toast.type==='success'?'var(--success)':'var(--danger)',
             fontSize:13,fontWeight:600,letterSpacing:'-0.1px',
