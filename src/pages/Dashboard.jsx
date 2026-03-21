@@ -22,6 +22,7 @@ import AdvancedAnalytics from './AdvancedAnalytics'
 import GoogleCalendarSync from './GoogleCalendarSync'
 import EmailToTask from './EmailToTask'
 import AITaskBreakdown from './AITaskBreakdown'
+import ExamPaths from './ExamPaths'
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -588,13 +589,14 @@ export default function Dashboard(){
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
   const [showOnboarding,setShowOnboarding]=useState(false)
-  const [navOpen,setNavOpen]=useState({focus:true,insights:false,collaborate:false,tools:false})
+  const [navOpen,setNavOpen]=useState({focus:true,insights:false,collaborate:false,tools:false,education:false})
   const toggleNav = (k) => setNavOpen(p=>({...p,[k]:!p[k]}))
   const NAV_GROUPS = {
     focus:['focus','pomodoro','habits','calendar'],
     insights:['analytics','weekly','advanced-analytics','matrix'],
     collaborate:['teams','leaderboard','ai'],
     tools:['reminders','export','gcal','email-task','ai-breakdown'],
+    education:['exam-paths'],
   }
   const openGroupForView = (v) => {
     const grp = Object.entries(NAV_GROUPS).find(([,items])=>items.includes(v))
@@ -724,6 +726,7 @@ export default function Dashboard(){
     if(view==='gcal')return<>📅 <span style={{color:'var(--accent2)'}}>Google Calendar</span></>
     if(view==='email-task')return<>📧 <span style={{color:'var(--accent2)'}}>Email → Task</span></>
     if(view==='ai-breakdown')return<>🧠 <span style={{color:'var(--accent2)'}}>AI Task Breakdown</span></>
+    if(view==='exam-paths')return<>🗺️ <span style={{color:'#f59e0b'}}>Exam Paths</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -778,23 +781,30 @@ export default function Dashboard(){
                   items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]] },
                 { key:'collaborate', label:'Teams & Social', icon:'👥',
                   items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]] },
+                { key:'education', label:'Exam Paths', icon:'🗺️',
+                  items:[['exam-paths','🗺️','Exam Paths','NEW']] },
                 { key:'tools', label:'Tools', icon:'🔧',
                   items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['ai-breakdown','🧠','AI Breakdown','NEW'],['export','📤','Export',null]] },
               ].map(group => {
                 const isGroupActive = group.items.some(([v])=>v===view)
                 const isOpen = navOpen[group.key]
+                const groupAccentColor = group.key==='education' ? '#f59e0b' : 'var(--accent2)'
+                const groupActiveBg = group.key==='education' ? 'rgba(245,158,11,.06)' : 'rgba(124,58,237,.06)'
+                const groupActiveBorder = group.key==='education' ? 'rgba(245,158,11,.12)' : 'rgba(124,58,237,.12)'
+                const itemActiveBg = group.key==='education' ? 'rgba(245,158,11,.12)' : 'rgba(124,58,237,.12)'
+                const itemActiveBorder = group.key==='education' ? 'rgba(245,158,11,.2)' : 'rgba(124,58,237,.2)'
                 return (
                   <div key={group.key} style={{marginBottom:4}}>
                     {/* Group header */}
                     <button onClick={()=>toggleNav(group.key)}
                       style={{width:'100%',display:'flex',alignItems:'center',gap:8,
                         padding:'8px 10px',borderRadius:10,cursor:'pointer',
-                        background:isGroupActive?'rgba(124,58,237,.06)':'transparent',
-                        border:`1px solid ${isGroupActive?'rgba(124,58,237,.12)':'transparent'}`,
+                        background:isGroupActive?groupActiveBg:'transparent',
+                        border:`1px solid ${isGroupActive?groupActiveBorder:'transparent'}`,
                         transition:'all .15s'}}>
                       <span style={{fontSize:14}}>{group.icon}</span>
                       <span style={{flex:1,fontSize:11,fontWeight:700,letterSpacing:'1px',
-                        textTransform:'uppercase',color:isGroupActive?'var(--accent2)':'var(--muted)',
+                        textTransform:'uppercase',color:isGroupActive?groupAccentColor:'var(--muted)',
                         textAlign:'left'}}>{group.label}</span>
                       <span style={{fontSize:10,color:'var(--muted)',transition:'transform .2s',
                         transform:isOpen?'rotate(90deg)':'rotate(0deg)'}}>›</span>
@@ -807,13 +817,15 @@ export default function Dashboard(){
                             style={{width:'100%',display:'flex',alignItems:'center',gap:9,
                               padding:'8px 10px',borderRadius:9,marginBottom:1,cursor:'pointer',
                               fontSize:12,fontWeight:500,textAlign:'left',transition:'all .12s',
-                              background:view===v?'rgba(124,58,237,.12)':'transparent',
-                              color:view===v?'var(--accent2)':'var(--muted)',
-                              border:view===v?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}>
+                              background:view===v?itemActiveBg:'transparent',
+                              color:view===v?groupAccentColor:'var(--muted)',
+                              border:view===v?`1px solid ${itemActiveBorder}`:'1px solid transparent'}}>
                             <span style={{width:16,textAlign:'center',fontSize:13}}>{ic}</span>
                             <span style={{flex:1}}>{lb}</span>
                             {badge&&<span style={{fontSize:9,padding:'2px 5px',borderRadius:4,
-                              background:'linear-gradient(135deg,#7c3aed,#a855f7)',
+                              background: group.key==='education'
+                                ? 'linear-gradient(135deg,#f59e0b,#fbbf24)'
+                                : 'linear-gradient(135deg,#7c3aed,#a855f7)',
                               color:'#fff',fontWeight:700}}>{badge}</span>}
                           </button>
                         ))}
@@ -963,6 +975,7 @@ export default function Dashboard(){
             :view==='gcal'?<GoogleCalendarSync tasks={tasks}/>
             :view==='email-task'?<EmailToTask onTaskCreated={fetchAll}/>
             :view==='ai-breakdown'?<AITaskBreakdown onSaved={fetchAll}/>
+            :view==='exam-paths'?<ExamPaths/>
             :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
@@ -1062,7 +1075,7 @@ export default function Dashboard(){
 
         {/* Mobile bottom nav */}
         <nav className="bnav" style={{justifyContent:'space-around',alignItems:'center'}}>
-          {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['pomodoro','⏱','Timer'],['leaderboard','🏆','Ranks'],['profile','👤','Me']].map(([v,ic,lb])=>(
+          {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['exam-paths','🗺️','Paths'],['leaderboard','🏆','Ranks'],['profile','👤','Me']].map(([v,ic,lb])=>(
             <button key={v} className="bnav-btn" onClick={()=>{setView(v);setSideOpen(false)}}
               style={{color:view===v?'var(--accent2)':'var(--muted)',fontWeight:view===v?700:400}}>
               <span style={{fontSize:20,lineHeight:1,display:'block',
