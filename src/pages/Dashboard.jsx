@@ -23,6 +23,7 @@ import GoogleCalendarSync from './GoogleCalendarSync'
 import EmailToTask from './EmailToTask'
 import AITaskBreakdown from './AITaskBreakdown'
 import ExamPaths from './ExamPaths'
+import ExamPathsView from './ExamPathsView'  // ── CHANGE 1: Added ExamPathsView import
 
 // ── Constants ────────────────────────────────────────────────
 const PRI = {
@@ -592,7 +593,7 @@ export default function Dashboard(){
   const [navOpen,setNavOpen]=useState({focus:true,insights:false,collaborate:false,tools:false,education:false})
   const toggleNav = (k) => setNavOpen(p=>({...p,[k]:!p[k]}))
   const NAV_GROUPS = {
-    focus:['focus','pomodoro','habits','calendar'],
+    focus:['focus','pomodoro','habits','calendar','paths'],  // ── CHANGE 2a: added 'paths'
     insights:['analytics','weekly','advanced-analytics','matrix'],
     collaborate:['teams','leaderboard','ai'],
     tools:['reminders','export','gcal','email-task','ai-breakdown'],
@@ -727,6 +728,7 @@ export default function Dashboard(){
     if(view==='email-task')return<>📧 <span style={{color:'var(--accent2)'}}>Email → Task</span></>
     if(view==='ai-breakdown')return<>🧠 <span style={{color:'var(--accent2)'}}>AI Task Breakdown</span></>
     if(view==='exam-paths')return<>🗺️ <span style={{color:'#f59e0b'}}>Exam Paths</span></>
+    if(view==='paths')return<>📚 <span style={{color:'var(--accent2)'}}>Exam Paths</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -776,7 +778,14 @@ export default function Dashboard(){
               {/* ── NAV GROUPS ── */}
               {[
                 { key:'focus', label:'Focus & Habits', icon:'🎯',
-                  items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null]] },
+                  items:[
+                    ['focus','🎯','Daily Focus',null],
+                    ['pomodoro','⏱','Pomodoro',null],
+                    ['habits','🔥','Habits',null],
+                    ['calendar','📅','Calendar',null],
+                    ['paths','📚','Exam Paths',null],  // ── CHANGE 2b: Added paths nav item to focus group
+                  ]
+                },
                 { key:'insights', label:'Insights', icon:'📊',
                   items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]] },
                 { key:'collaborate', label:'Teams & Social', icon:'👥',
@@ -964,7 +973,7 @@ export default function Dashboard(){
           <div className="main-pad" style={{flex:1,overflowY:'auto',padding:22}}>
             {view==='focus'?<DailyFocus onNavigateToTasks={()=>setView('tasks')}/>
             :view==='weekly'?<WeeklyReview/>
-            :view==='pomodoro'?<PomodoroTimer tasks={tasks} onSessionComplete={()=>loadTasks&&loadTasks()} running={pomRunning} setRunning={setPomRunning} secs={pomSecs} setSecs={setPomSecs} mode={pomMode} setMode={setPomMode} sessions={pomSessions} setSessions={setPomSessions}/>
+            :view==='pomodoro'?<PomodoroTimer tasks={tasks} onSessionComplete={()=>fetchAll()} running={pomRunning} setRunning={setPomRunning} secs={pomSecs} setSecs={setPomSecs} mode={pomMode} setMode={setPomMode} sessions={pomSessions} setSessions={setPomSessions}/>
             :view==='leaderboard'?<Leaderboard/>
             :view==='habits'?<HabitTracker/>
             :view==='calendar'?<CalendarView tasks={tasks} onTaskClick={t=>{setEditTask(t);setModal(true)}} onDayClick={d=>{setModal(true)}}/>
@@ -976,6 +985,7 @@ export default function Dashboard(){
             :view==='email-task'?<EmailToTask onTaskCreated={fetchAll}/>
             :view==='ai-breakdown'?<AITaskBreakdown onSaved={fetchAll}/>
             :view==='exam-paths'?<ExamPaths/>
+            :view==='paths'?<ExamPathsView/>
             :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
