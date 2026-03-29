@@ -6,14 +6,15 @@ import QuizModal from './QuizModal'
 export default function ExamPathDetail({ pathId, onBack }) {
   const [path, setPath] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [expandedPhase, setExpandedPhase] = useState(0)
+  const [expandedPhase, setExpandedPhase] = useState(0)  // first phase open by default
   const [selectedTopic, setSelectedTopic] = useState(null)
   const [quizTopic, setQuizTopic] = useState(null)
 
   const load = () => {
+    setLoading(true)
     api.get(`/api/paths/${pathId}`)
-      .then(r => setPath(r.data))
-      .catch(() => {})
+      .then(r => { setPath(r.data) })
+      .catch(e => console.error('Failed to load path', e))
       .finally(() => setLoading(false))
   }
 
@@ -24,7 +25,7 @@ export default function ExamPathDetail({ pathId, onBack }) {
       {[1, 2, 3].map(i => <div key={i} className="skel" style={{ height: 80 }} />)}
     </div>
   )
-  if (!path) return <p style={{ color: 'var(--muted)' }}>Path not found.</p>
+  if (!path) return <p style={{ color: 'var(--muted)', textAlign: 'center', padding: 40 }}>Path not found.</p>
 
   return (
     <div style={{ animation: 'fadeUp .3s ease' }}>
@@ -35,6 +36,12 @@ export default function ExamPathDetail({ pathId, onBack }) {
           <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', fontFamily: 'Syne,sans-serif', margin: 0 }}>{path.title}</h2>
           <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>{path.audience} · {path.language}</p>
         </div>
+        {!path.enrolled && (
+          <button
+            onClick={() => api.post(`/api/paths/${pathId}/enroll`).then(load)}
+            style={{ padding: '8px 18px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,var(--accent),var(--accent2))', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          >+ Enroll</button>
+        )}
       </div>
 
       {/* Overall Progress Card */}
@@ -43,22 +50,22 @@ export default function ExamPathDetail({ pathId, onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div>
             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--muted)', margin: 0 }}>OVERALL PROGRESS</p>
-            <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent2)', fontFamily: 'Syne,sans-serif', margin: 0 }}>{path.progressPercent}%</p>
+            <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent2)', fontFamily: 'Syne,sans-serif', margin: 0 }}>{path.progressPercent ?? 0}%</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>Task {path.completedTopics} of {path.totalTasks}</p>
+            <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>Task {path.completedTopics ?? 0} of {path.totalTasks}</p>
             <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>{path.totalWeeks} weeks · {path.language}</p>
           </div>
         </div>
         <div style={{ height: 8, background: 'var(--surface3)', borderRadius: 4, overflow: 'hidden', marginBottom: 16 }}>
-          <div style={{ height: '100%', width: `${path.progressPercent}%`, background: 'linear-gradient(90deg,var(--accent),var(--accent2))', borderRadius: 4, transition: 'width .5s ease', boxShadow: '0 0 8px var(--glow)' }} />
+          <div style={{ height: '100%', width: `${path.progressPercent ?? 0}%`, background: 'linear-gradient(90deg,var(--accent),var(--accent2))', borderRadius: 4, transition: 'width .5s ease', boxShadow: '0 0 8px var(--glow)' }} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
           {[
-            ['✅', path.completedTopics, 'TASKS DONE'],
-            ['🔥', path.currentStreak, 'STREAK'],
-            ['⚡', path.totalXpEarned, 'XP EARNED'],
-            ['🎯', `${path.overallAccuracy}%`, 'ACCURACY'],
+            ['✅', path.completedTopics ?? 0, 'TASKS DONE'],
+            ['🔥', path.currentStreak ?? 0, 'STREAK'],
+            ['⚡', path.totalXpEarned ?? 0, 'XP EARNED'],
+            ['🎯', `${path.overallAccuracy ?? 0}%`, 'ACCURACY'],
           ].map(([icon, val, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
               <p style={{ fontSize: 20, margin: 0 }}>{icon}</p>
@@ -70,51 +77,63 @@ export default function ExamPathDetail({ pathId, onBack }) {
       </div>
 
       {/* Phases */}
-      {path.phases?.map((phase, idx) => (
-        <div key={phase.id} style={{ marginBottom: 12 }}>
-          {/* Phase header */}
-          <div
-            onClick={() => setExpandedPhase(expandedPhase === idx ? -1 : idx)}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: expandedPhase === idx ? '14px 14px 0 0' : 14, cursor: 'pointer', transition: 'all .15s' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: phase.completedTopics === phase.totalTopics ? 'rgba(107,203,119,.15)' : 'linear-gradient(135deg,var(--accent),var(--accent2))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-              {phase.completedTopics === phase.totalTopics ? '✅' : phase.icon}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{phase.title}</p>
-                <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, background: 'var(--surface2)', color: 'var(--muted)' }}>{phase.completedTopics}/{phase.totalTopics}</span>
-              </div>
-              <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 3, overflow: 'hidden', marginTop: 6, maxWidth: 200 }}>
-                <div style={{ height: '100%', width: `${phase.progressPercent}%`, background: 'linear-gradient(90deg,var(--accent),var(--accent2))', borderRadius: 3 }} />
-              </div>
-            </div>
-            <span style={{ color: 'var(--muted)', fontSize: 16, transition: 'transform .2s', transform: expandedPhase === idx ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
-          </div>
-
-          {/* Topics list */}
-          {expandedPhase === idx && (
-            <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 14px 14px', overflow: 'hidden' }}>
-              {phase.topics?.map((topic, tIdx) => (
-                <TopicRow
-                  key={topic.id}
-                  topic={topic}
-                  index={tIdx + 1}
-                  isLast={tIdx === phase.topics.length - 1}
-                  onOpen={() => setSelectedTopic(topic)}
-                  onQuiz={() => setQuizTopic(topic)}
-                  onComplete={async () => {
-                    await api.post(`/api/paths/topics/${topic.id}/complete`)
-                    load()
-                  }}
-                />
-              ))}
-            </div>
-          )}
+      {(!path.phases || path.phases.length === 0) ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+          <p style={{ fontSize: 32, marginBottom: 12 }}>📋</p>
+          <p style={{ fontSize: 15, color: 'var(--text)', fontWeight: 600 }}>No phases found</p>
+          <p style={{ fontSize: 13 }}>Topics will appear here once the path is loaded.</p>
         </div>
-      ))}
+      ) : (
+        path.phases.map((phase, idx) => (
+          <div key={phase.id} style={{ marginBottom: 12 }}>
+            {/* Phase header */}
+            <div
+              onClick={() => setExpandedPhase(expandedPhase === idx ? -1 : idx)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: expandedPhase === idx ? '14px 14px 0 0' : 14, cursor: 'pointer', transition: 'all .15s' }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: phase.completedTopics === phase.totalTopics && phase.totalTopics > 0 ? 'rgba(107,203,119,.15)' : 'linear-gradient(135deg,var(--accent),var(--accent2))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
+                {phase.completedTopics === phase.totalTopics && phase.totalTopics > 0 ? '✅' : (phase.icon || (idx + 1))}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', margin: 0 }}>{phase.title}</p>
+                  <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 6, background: 'var(--surface2)', color: 'var(--muted)' }}>{phase.completedTopics ?? 0}/{phase.totalTopics}</span>
+                </div>
+                <div style={{ height: 3, background: 'var(--surface3)', borderRadius: 3, overflow: 'hidden', marginTop: 6, maxWidth: 200 }}>
+                  <div style={{ height: '100%', width: `${phase.progressPercent ?? 0}%`, background: 'linear-gradient(90deg,var(--accent),var(--accent2))', borderRadius: 3 }} />
+                </div>
+              </div>
+              <span style={{ color: 'var(--muted)', fontSize: 16, transition: 'transform .2s', transform: expandedPhase === idx ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
+            </div>
+
+            {/* Topics list */}
+            {expandedPhase === idx && (
+              <div style={{ background: 'var(--surface2)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 14px 14px', overflow: 'hidden' }}>
+                {!phase.topics || phase.topics.length === 0 ? (
+                  <p style={{ fontSize: 13, color: 'var(--muted)', padding: '20px', textAlign: 'center' }}>No topics in this phase yet.</p>
+                ) : (
+                  phase.topics.map((topic, tIdx) => (
+                    <TopicRow
+                      key={topic.id}
+                      topic={topic}
+                      index={tIdx + 1}
+                      isLast={tIdx === phase.topics.length - 1}
+                      onOpen={() => setSelectedTopic(topic)}
+                      onQuiz={() => setQuizTopic(topic)}
+                      onComplete={async () => {
+                        await api.post(`/api/paths/topics/${topic.id}/complete`)
+                        load()
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        ))
+      )}
 
       {/* Topic Viewer Modal */}
       {selectedTopic && (
@@ -146,7 +165,8 @@ export default function ExamPathDetail({ pathId, onBack }) {
 
 function TopicRow({ topic, index, isLast, onOpen, onQuiz, onComplete }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 18px', borderBottom: isLast ? 'none' : '1px solid var(--border)', transition: 'background .15s', cursor: 'pointer' }}
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 18px', borderBottom: isLast ? 'none' : '1px solid var(--border)', transition: 'background .15s', cursor: 'pointer' }}
       onMouseEnter={e => e.currentTarget.style.background = 'var(--surface3)'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
     >
@@ -155,7 +175,7 @@ function TopicRow({ topic, index, isLast, onOpen, onQuiz, onComplete }) {
         {topic.completed ? '✓' : index}
       </div>
 
-      {/* Content */}
+      {/* Title + meta */}
       <div style={{ flex: 1, minWidth: 0 }} onClick={onOpen}>
         <p style={{ fontSize: 13, fontWeight: topic.completed ? 400 : 600, color: topic.completed ? 'var(--muted)' : 'var(--text)', textDecoration: topic.completed ? 'line-through' : 'none', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {topic.title}
@@ -165,20 +185,29 @@ function TopicRow({ topic, index, isLast, onOpen, onQuiz, onComplete }) {
           <span style={{ fontSize: 10, color: 'var(--accent3)' }}>+{topic.xpReward} XP</span>
           {topic.hasQuiz && (
             <span style={{ fontSize: 10, color: topic.quizAttempted ? 'var(--success)' : topic.quizSkipped ? 'var(--muted)' : 'var(--warn)' }}>
-              {topic.quizAttempted ? `📝 ${topic.quizAccuracy}%` : topic.quizSkipped ? '⏭ Skipped' : '📝 Quiz'}
+              {topic.quizAttempted ? `📝 ${topic.quizAccuracy}%` : topic.quizSkipped ? '⏭ Skipped' : '📝 Quiz available'}
             </span>
           )}
-          {topic.resourceUrl && <span style={{ fontSize: 10, color: 'var(--muted)' }}>{topic.resourceType === 'youtube' ? '▶ Video' : '📄 PDF'}</span>}
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Action buttons */}
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        {topic.hasQuiz && !topic.quizAttempted && !topic.quizSkipped && topic.completed && (
-          <button onClick={e => { e.stopPropagation(); onQuiz() }} style={{ padding: '5px 10px', borderRadius: 7, background: 'rgba(255,217,61,.1)', border: '1px solid rgba(255,217,61,.25)', color: 'var(--warn)', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>📝 Quiz</button>
+        {/* Quiz button — show if has quiz and not yet attempted */}
+        {topic.hasQuiz && !topic.quizAttempted && !topic.quizSkipped && (
+          <button
+            onClick={e => { e.stopPropagation(); onQuiz() }}
+            style={{ padding: '5px 10px', borderRadius: 7, background: 'rgba(255,217,61,.1)', border: '1px solid rgba(255,217,61,.25)', color: 'var(--warn)', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >📝 Quiz</button>
         )}
-        {!topic.completed && (
-          <button onClick={e => { e.stopPropagation(); onOpen() }} style={{ padding: '5px 10px', borderRadius: 7, background: 'rgba(124,58,237,.1)', border: '1px solid rgba(124,58,237,.25)', color: 'var(--accent3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Study →</button>
+        {/* Study / Complete button */}
+        {!topic.completed ? (
+          <button
+            onClick={e => { e.stopPropagation(); onOpen() }}
+            style={{ padding: '5px 10px', borderRadius: 7, background: 'rgba(124,58,237,.1)', border: '1px solid rgba(124,58,237,.25)', color: 'var(--accent3)', fontSize: 11, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          >Study →</button>
+        ) : (
+          <span style={{ fontSize: 11, color: 'var(--success)', padding: '5px 10px' }}>✓ Done</span>
         )}
       </div>
     </div>
