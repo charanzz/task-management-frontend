@@ -114,4 +114,33 @@ api.interceptors.response.use(response => {
   return response;
 });
 
+// ── authAPI — used by Login.jsx and Register.jsx ──────────────────────────
+// These calls skip the 401 redirect since user isn't logged in yet
+export const authAPI = axios.create({
+  baseURL: BASE_URL,
+  timeout: 35000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Retry on cold start for auth calls too
+authAPI.interceptors.response.use(
+  response => { hideWakeUpBanner(); return response; },
+  async error => {
+    const config = error.config;
+    if (config._retryCount >= 3) return Promise.reject(error);
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return Promise.reject(error);
+    }
+    const isNetworkError = !error.response;
+    const isTimeout = error.code === 'ECONNABORTED';
+    if (isNetworkError || isTimeout) {
+      config._retryCount = (config._retryCount || 0) + 1;
+      if (config._retryCount === 1) showWakeUpBanner();
+      await new Promise(r => setTimeout(r, config._retryCount * 3000));
+      return authAPI(config);
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
