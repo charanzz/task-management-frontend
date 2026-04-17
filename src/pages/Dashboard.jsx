@@ -333,8 +333,6 @@ export default function Dashboard(){
   const [viewMode,setViewMode]=useState('list')
   const [roleFromApi,setRoleFromApi]=useState('USER')
   const [trialDaysLeft,setTrialDaysLeft]=useState(null)
-  // ── NEW: last fetched timestamp for smart refetch ─────────────────────────
-  const [lastFetched,setLastFetched]=useState(null)
   const {user,login,logout}=useAuth()
   const navigate=useNavigate()
 
@@ -343,65 +341,17 @@ export default function Dashboard(){
 
   const isAdmin=roleFromApi==='ADMIN'
 
-  // ── UPDATED fetchAll — no blank screen, caches data ───────────────────────
   const fetchAll=useCallback(async()=>{
-    // Only show loading spinner if there's truly no data yet
-    const cachedTasks=sessionStorage.getItem('tf_tasks')
-    if(!cachedTasks)setLoading(true)
     try{
-      const [tr,sr,lr,br]=await Promise.all([
-        api.get('/api/tasks'),
-        api.get('/api/tasks/stats').catch(()=>({data:null})),
-        api.get('/api/users/level').catch(()=>({data:{level:1,focusScore:0,nextLevelAt:100}})),
-        api.get('/api/users/badges').catch(()=>({data:[]})),
-      ])
-      const taskData=Array.isArray(tr.data?.content)?tr.data.content:Array.isArray(tr.data)?tr.data:[]
-      setTasks(taskData)
+      const [tr,sr,lr,br]=await Promise.all([api.get('/api/tasks'),api.get('/api/tasks/stats').catch(()=>({data:null})),api.get('/api/users/level').catch(()=>({data:{level:1,focusScore:0,nextLevelAt:100}})),api.get('/api/users/badges').catch(()=>({data:[]}))])
+      setTasks(Array.isArray(tr.data?.content)?tr.data.content:Array.isArray(tr.data)?tr.data:[])
       setStats(sr.data)
       if(lr.data)setLvl(lr.data)
       if(Array.isArray(br.data))setBadges(br.data)
-      setLastFetched(Date.now())
-      // Cache for instant load on next visit
-      try{
-        sessionStorage.setItem('tf_tasks',JSON.stringify(taskData))
-        sessionStorage.setItem('tf_stats',JSON.stringify(sr.data))
-        sessionStorage.setItem('tf_lvl',JSON.stringify(lr.data))
-      }catch{}
-    }catch(e){
-      console.error('fetchAll error:',e)
-      flash('error','⚠ Failed to load — retrying...')
-    }finally{
-      setLoading(false)
-    }
+    }catch(e){console.error(e);flash('error','⚠ Failed to load')}
+    finally{setLoading(false)}
   },[])
-
-  // ── UPDATED useEffect — load cache instantly, then fetch fresh ────────────
-  useEffect(()=>{
-    // Show cached data immediately — no blank screen
-    try{
-      const ct=sessionStorage.getItem('tf_tasks')
-      const cl=sessionStorage.getItem('tf_lvl')
-      const cs=sessionStorage.getItem('tf_stats')
-      if(ct){setTasks(JSON.parse(ct));setLoading(false)}
-      if(cl){setLvl(JSON.parse(cl))}
-      if(cs){setStats(JSON.parse(cs))}
-    }catch{}
-    // Always fetch fresh in background
-    fetchAll()
-  },[fetchAll])
-
-  // ── NEW: Refetch when user comes back to the tab ───────────────────────────
-  useEffect(()=>{
-    const handleVisibility=()=>{
-      if(document.visibilityState==='visible'){
-        if(!lastFetched||Date.now()-lastFetched>120000){
-          fetchAll()
-        }
-      }
-    }
-    document.addEventListener('visibilitychange',handleVisibility)
-    return()=>document.removeEventListener('visibilitychange',handleVisibility)
-  },[fetchAll,lastFetched])
+  useEffect(()=>{fetchAll()},[fetchAll])
 
   function flash(type,msg){setToast({type,msg});setTimeout(()=>setToast(null),3500)}
   async function handleSave(data){if(editTask){await api.put(`/api/tasks/${editTask.id}`,data);flash('success','✓ Task updated!')}else{await api.post('/api/tasks',data);flash('success','⚡ Task created!')}setModal(false);setEditTask(null);fetchAll()}
@@ -463,10 +413,14 @@ export default function Dashboard(){
               {navItems.map(item=>{const active=view==='tasks'&&filter===item.key;return(<button key={item.key} className="nav-item" onClick={()=>{setFilter(item.key);setView('tasks')}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',background:active?'rgba(124,58,237,.1)':'transparent',color:active?'var(--accent2)':'var(--muted)',border:active?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}><span style={{width:17,textAlign:'center'}}>{item.icon}</span><span style={{flex:1}}>{item.label}</span><span style={{fontSize:10,padding:'1px 7px',borderRadius:6,background:'var(--surface2)',color:'var(--muted)'}}>{item.count}</span></button>)})}
 
               {[
-                {key:'focus',label:'Focus & Habits',icon:'🎯',items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null],['paths','📚','Exam Paths',null]]},
-                {key:'insights',label:'Insights',icon:'📊',items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]]},
-                {key:'collaborate',label:'Teams & Social',icon:'👥',items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]]},
-                {key:'tools',label:'Tools',icon:'🔧',items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['ai-breakdown','🧠','AI Breakdown','NEW'],['export','📤','Export',null]]},
+                { key:'focus', label:'Focus & Habits', icon:'🎯',
+                  items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null],['paths','📚','Exam Paths',null]] },
+                { key:'insights', label:'Insights', icon:'📊',
+                  items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]] },
+                { key:'collaborate', label:'Teams & Social', icon:'👥',
+                  items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]] },
+                { key:'tools', label:'Tools', icon:'🔧',
+                  items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['ai-breakdown','🧠','AI Breakdown','NEW'],['export','📤','Export',null]] },
               ].map(group=>{
                 const isGroupActive=group.items.some(([v])=>v===view)
                 const isOpen=navOpen[group.key]
