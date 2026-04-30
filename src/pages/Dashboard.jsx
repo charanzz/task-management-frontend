@@ -321,12 +321,7 @@ export default function Dashboard(){
   const [showOnboarding,setShowOnboarding]=useState(false)
   const [navOpen,setNavOpen]=useState({focus:true,insights:false,collaborate:false,tools:false})
   const toggleNav=(k)=>setNavOpen(p=>({...p,[k]:!p[k]}))
-  const NAV_GROUPS={
-    focus:['focus','pomodoro','habits','calendar','paths'],
-    insights:['analytics','weekly','advanced-analytics','matrix'],
-    collaborate:['teams','leaderboard','ai'],
-    tools:['reminders','export','gcal','email-task','ai-breakdown'],
-  }
+  const NAV_GROUPS={focus:['focus','pomodoro','habits','calendar','paths'],insights:['analytics','weekly','advanced-analytics','matrix'],collaborate:['teams','leaderboard','ai'],tools:['reminders','export','gcal','email-task','ai-breakdown']}
   const openGroupForView=(v)=>{const grp=Object.entries(NAV_GROUPS).find(([,items])=>items.includes(v));if(grp)setNavOpen(p=>({...p,[grp[0]]:true}))}
   const [theme,setTheme]=useState(()=>localStorage.getItem('tf_theme')||'dark')
   const [view,setView]=useState('tasks')
@@ -399,9 +394,7 @@ export default function Dashboard(){
     <>
       <style>{G}</style>
       <div style={{display:'flex',height:'100vh',overflow:'hidden',background:theme==='light'?'#f4f4f9':'var(--bg)',color:theme==='light'?'#1a1a2e':'var(--text)','--bg':theme==='light'?'#f4f4f9':'#0a0a0f','--surface':theme==='light'?'#ffffff':'#111118','--surface2':theme==='light'?'#ededf4':'#1a1a24','--border':theme==='light'?'rgba(0,0,0,.09)':'rgba(255,255,255,.06)','--border2':theme==='light'?'rgba(0,0,0,.13)':'rgba(255,255,255,.1)','--text':theme==='light'?'#1a1a2e':'#f0f0f8','--muted':theme==='light'?'#555577':'#6b6b8a'}}>
-
         {sideOpen&&<div className="sidebar-overlay open" onClick={()=>setSideOpen(false)}/>}
-
         {sideOpen&&(
           <aside className="sidebar open" style={{width:236,flexShrink:0,background:'var(--surface)',borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',height:'100%',transition:'transform .25s ease'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,padding:'16px 14px',borderBottom:'1px solid var(--border)'}}>
@@ -411,16 +404,11 @@ export default function Dashboard(){
             <nav style={{flex:1,padding:'12px 10px',overflowY:'auto'}}>
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'0 8px',marginBottom:6}}>TASKS</p>
               {navItems.map(item=>{const active=view==='tasks'&&filter===item.key;return(<button key={item.key} className="nav-item" onClick={()=>{setFilter(item.key);setView('tasks')}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',background:active?'rgba(124,58,237,.1)':'transparent',color:active?'var(--accent2)':'var(--muted)',border:active?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}><span style={{width:17,textAlign:'center'}}>{item.icon}</span><span style={{flex:1}}>{item.label}</span><span style={{fontSize:10,padding:'1px 7px',borderRadius:6,background:'var(--surface2)',color:'var(--muted)'}}>{item.count}</span></button>)})}
-
               {[
-                { key:'focus', label:'Focus & Habits', icon:'🎯',
-                  items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null],['paths','📚','Exam Paths',null]] },
-                { key:'insights', label:'Insights', icon:'📊',
-                  items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]] },
-                { key:'collaborate', label:'Teams & Social', icon:'👥',
-                  items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]] },
-                { key:'tools', label:'Tools', icon:'🔧',
-                  items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['ai-breakdown','🧠','AI Breakdown','NEW'],['export','📤','Export',null]] },
+                {key:'focus',label:'Focus & Habits',icon:'🎯',items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null],['paths','📚','Exam Paths',null]]},
+                {key:'insights',label:'Insights',icon:'📊',items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]]},
+                {key:'collaborate',label:'Teams & Social',icon:'👥',items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]]},
+                {key:'tools',label:'Tools',icon:'🔧',items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['ai-breakdown','🧠','AI Breakdown','NEW'],['export','📤','Export',null]]},
               ].map(group=>{
                 const isGroupActive=group.items.some(([v])=>v===view)
                 const isOpen=navOpen[group.key]
@@ -445,11 +433,8 @@ export default function Dashboard(){
                   </div>
                 )
               })}
-
               {!isAdmin&&(<button onClick={()=>navigate('/pricing')} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',background:'rgba(255,217,61,.06)',border:'1px solid rgba(255,217,61,.15)',color:'var(--warn)'}}><span style={{width:17,textAlign:'center'}}>⭐</span><span style={{flex:1}}>Upgrade to Pro</span>{trialDaysLeft!==null&&trialDaysLeft>0&&(<span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'rgba(255,217,61,.15)',color:'#ffd93d',fontWeight:700,border:'1px solid rgba(255,217,61,.3)'}}>{trialDaysLeft}d left</span>)}{trialDaysLeft===0&&(<span style={{fontSize:9,padding:'2px 6px',borderRadius:5,background:'rgba(255,107,107,.15)',color:'#ff6b6b',fontWeight:700,border:'1px solid rgba(255,107,107,.3)'}}>Expired</span>)}</button>)}
-
               {isAdmin&&(<><p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'16px 8px 6px'}}>ADMIN</p><button className="nav-item" onClick={()=>setView('admin')} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',background:view==='admin'?'rgba(255,107,107,.08)':'transparent',color:view==='admin'?'var(--danger)':'var(--muted)',border:view==='admin'?'1px solid rgba(255,107,107,.2)':'1px solid transparent'}}><span style={{width:17,textAlign:'center'}}>🛡️</span><span>Admin Dashboard</span></button></>)}
-
               <div style={{margin:'14px 2px 0',padding:'13px 11px',background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:12}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}><div style={{display:'flex',alignItems:'center',gap:7}}><span style={{fontSize:17}}>⚡</span><div><p style={{fontSize:12,fontWeight:700,color:'var(--accent2)',fontFamily:'Syne,sans-serif',margin:0}}>Level {lvl.level}</p><p style={{fontSize:10,color:'var(--muted)',margin:0}}>{LVL[lvl.level]||'Legend'}</p></div></div><span style={{fontSize:11,color:'var(--muted)'}}>{lvl.focusScore}pts</span></div>
                 <div style={{background:'var(--surface3)',borderRadius:6,height:5,overflow:'hidden'}}><div style={{height:'100%',width:`${pct}%`,background:'linear-gradient(90deg,var(--accent),var(--accent2))',borderRadius:6,transition:'width .4s ease'}}/></div>
@@ -460,17 +445,16 @@ export default function Dashboard(){
             </nav>
             <div style={{padding:'12px 13px',borderTop:'1px solid var(--border)'}}>
               <div style={{display:'flex',alignItems:'center',gap:9}}>
-                <div onClick={()=>setView('profile')} style={{cursor:'pointer'}} title="My Profile"><Avatar name={user?.name} size={34}/></div>
+                <div onClick={()=>setView('profile')} style={{cursor:'pointer'}}><Avatar name={user?.name} size={34}/></div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:'flex',alignItems:'center',gap:5}}><p onClick={()=>setView('profile')} style={{fontSize:13,fontWeight:600,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',margin:0,cursor:'pointer'}}>{user?.name||'User'}</p>{isAdmin&&<span style={{fontSize:9,padding:'1px 5px',borderRadius:4,background:'rgba(255,107,107,.15)',color:'var(--danger)',fontWeight:700,flexShrink:0}}>ADMIN</span>}</div>
                   <div style={{display:'flex',alignItems:'center',gap:4,marginTop:2}}><div style={{width:6,height:6,borderRadius:'50%',background:'var(--success)',boxShadow:'0 0 6px rgba(107,203,119,.6)'}}/><span style={{fontSize:10,color:'var(--muted)'}}>Lv.{lvl.level} Active</span></div>
                 </div>
-                <button onClick={()=>{logout();navigate('/login')}} title="Logout" style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>⏻</button>
+                <button onClick={()=>{logout();navigate('/login')}} style={{width:30,height:30,borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>⏻</button>
               </div>
             </div>
           </aside>
         )}
-
         <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
           <header style={{flexShrink:0,display:'flex',alignItems:'center',gap:11,padding:'12px 22px',background:'var(--surface)',borderBottom:'1px solid var(--border)'}}>
             <button onClick={()=>setSideOpen(s=>!s)} style={{width:32,height:32,borderRadius:9,background:'var(--surface2)',border:'1px solid var(--border)',color:'var(--muted)',fontSize:15,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>☰</button>
@@ -483,7 +467,6 @@ export default function Dashboard(){
               <button onClick={openNew} style={{padding:'9px 18px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:13,fontWeight:700,boxShadow:'0 4px 14px var(--glow)',flexShrink:0,cursor:'pointer'}} onMouseEnter={e=>e.currentTarget.style.transform='translateY(-1px)'} onMouseLeave={e=>e.currentTarget.style.transform='none'}>+ New Task</button>
             </>)}
           </header>
-
           <div className="main-pad" style={{flex:1,overflowY:'auto',padding:22}}>
             {view==='focus'?<DailyFocus onNavigateToTasks={()=>setView('tasks')}/>
             :view==='weekly'?<WeeklyReview/>
@@ -523,17 +506,14 @@ export default function Dashboard(){
             )}
           </div>
         </div>
-
         {view==='tasks'&&<button className="fab" onClick={openNew}>+</button>}
         {showOnboarding&&<OnboardingWizard onComplete={()=>setShowOnboarding(false)}/>}
-
         {pomRunning&&view!=='pomodoro'&&(
           <div className="pom-minibar" onClick={()=>setView('pomodoro')} style={{position:'fixed',bottom:0,left:0,right:0,zIndex:200,background:`linear-gradient(135deg,${pomModeColor}22,${pomModeColor}11)`,borderTop:`2px solid ${pomModeColor}`,backdropFilter:'blur(20px)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 20px',cursor:'pointer',gap:12}}>
-            <div style={{display:'flex',alignItems:'center',gap:10}}><span style={{fontSize:20,animation:'pomPulse 1s infinite'}}>{pomMode==='focus'?'🎯':pomMode==='short'?'☕':'🌙'}</span><div><p style={{margin:0,fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:'1px'}}>{pomMode==='focus'?'Focus Session':pomMode==='short'?'Short Break':'Long Break'}</p><p style={{margin:0,fontSize:22,fontWeight:800,color:'#fff',fontFamily:'monospace',letterSpacing:'2px'}}>{pomFormatTime(pomSecs)}</p></div></div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}><span style={{fontSize:20}}>{pomMode==='focus'?'🎯':pomMode==='short'?'☕':'🌙'}</span><div><p style={{margin:0,fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:'1px'}}>{pomMode==='focus'?'Focus Session':pomMode==='short'?'Short Break':'Long Break'}</p><p style={{margin:0,fontSize:22,fontWeight:800,color:'#fff',fontFamily:'monospace',letterSpacing:'2px'}}>{pomFormatTime(pomSecs)}</p></div></div>
             <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:11,color:'var(--muted)'}}>Session {pomSessions+1}</span><button onClick={e=>{e.stopPropagation();setPomRunning(false)}} style={{padding:'6px 14px',borderRadius:8,border:`1px solid ${pomModeColor}44`,background:`${pomModeColor}22`,color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer'}}>Pause</button><button onClick={e=>{e.stopPropagation();setPomRunning(false);setPomSecs(25*60);setPomMode('focus')}} style={{padding:'6px 14px',borderRadius:8,border:'1px solid rgba(255,255,255,.1)',background:'rgba(255,255,255,.05)',color:'var(--muted)',fontSize:12,cursor:'pointer'}}>Stop</button></div>
           </div>
         )}
-
         <nav className="bnav" style={{justifyContent:'space-around',alignItems:'center'}}>
           {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['paths','📚','Paths'],['leaderboard','🏆','Ranks'],['profile','👤','Me']].map(([v,ic,lb])=>(
             <button key={v} className="bnav-btn" onClick={()=>{setView(v);setSideOpen(false)}} style={{color:view===v?'var(--accent2)':'var(--muted)',fontWeight:view===v?700:400}}>
@@ -543,7 +523,6 @@ export default function Dashboard(){
             </button>
           ))}
         </nav>
-
         {modal&&<TaskModal task={editTask} onClose={()=>{setModal(false);setEditTask(null)}} onSave={handleSave} me={user}/>}
         {toast&&(<div style={{position:'fixed',bottom:80,right:16,padding:'12px 18px',borderRadius:12,fontSize:13,fontWeight:600,zIndex:300,background:toast.type==='success'?'rgba(107,203,119,.1)':'rgba(255,107,107,.1)',border:`1px solid ${toast.type==='success'?'rgba(107,203,119,.3)':'rgba(255,107,107,.3)'}`,color:toast.type==='success'?'var(--success)':'var(--danger)',backdropFilter:'blur(12px)',boxShadow:'0 8px 30px rgba(0,0,0,.4)',animation:'fadeUp .3s ease'}}>{toast.msg}</div>)}
       </div>
