@@ -61,9 +61,12 @@ export default function Login() {
     if (!form.email || !form.password) { setError('Please fill in all fields'); return }
     setLoading(true); setError('')
     try {
-      const res = await authAPI.login({ email: form.email.trim(), password: form.password })
-      const { token, email, name, id } = res.data
-      login(token, { id, name, email })
+      const res = await authAPI.post('/api/users/login', {
+        email: form.email.trim(),
+        password: form.password
+      })
+      const { token, email, name, id, role, isPro } = res.data
+      login(token, { id, name, email, role, isPro })
       if (joinToken) {
         navigate(`/join-team?token=${encodeURIComponent(joinToken)}`)
       } else {
@@ -88,9 +91,11 @@ export default function Login() {
       client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
       callback: async (response) => {
         try {
-          const res = await authAPI.googleLogin({ idToken: response.credential })
-          const { token, email, name, id } = res.data
-          login(token, { id, name, email })
+          const res = await authAPI.post('/api/auth/google', {
+            idToken: response.credential
+          })
+          const { token, email, name, id, role, isPro } = res.data
+          login(token, { id, name, email, role, isPro })
           if (joinToken) {
             navigate(`/join-team?token=${encodeURIComponent(joinToken)}`)
           } else {
@@ -147,7 +152,6 @@ export default function Login() {
               <div style={{background:'rgba(255,107,107,.08)',border:'1px solid rgba(255,107,107,.2)',borderRadius:10,padding:'11px 14px',fontSize:13,color:'#ff6b6b',marginBottom:18}}>⚠ {error}</div>
             )}
 
-            {/* Google Button — only renders when VITE_GOOGLE_CLIENT_ID is set */}
             {googleConfigured && (
               <>
                 <button onClick={handleGoogleLogin} disabled={googleLoading} className="google-btn" style={{
