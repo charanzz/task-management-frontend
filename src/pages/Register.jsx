@@ -29,7 +29,7 @@ export default function Register() {
 
     setLoading(true); setError('')
     try {
-      await authAPI.register({
+      await authAPI.post('/api/users/register', {
         name:     form.name.trim(),
         email:    form.email.trim(),
         password: form.password,
@@ -82,7 +82,7 @@ export default function Register() {
 
       {/* RIGHT FORM */}
       <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:32 }}>
-        <div style={{ width:'100%', maxWidth:400 }} className="anim-up">
+        <div style={{ width:'100%', maxWidth:400 }}>
           <h1 style={{ fontSize:30, fontWeight:800, color:'var(--text)', marginBottom:6 }}>Create account</h1>
           <p style={{ fontSize:13, color:'var(--muted)', marginBottom:28 }}>Free forever · No credit card needed</p>
 
@@ -98,7 +98,6 @@ export default function Register() {
           )}
 
           <form onSubmit={submit}>
-            {/* NAME */}
             <div style={{ marginBottom:14 }}>
               <label style={{ display:'block', fontSize:10, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Username</label>
               <input style={inputStyle} type="text" placeholder="choose a name"
@@ -106,7 +105,6 @@ export default function Register() {
                 onFocus={focus} onBlur={blur_} autoComplete="name" />
             </div>
 
-            {/* EMAIL */}
             <div style={{ marginBottom:14 }}>
               <label style={{ display:'block', fontSize:10, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Email</label>
               <input style={inputStyle} type="email" placeholder="you@email.com"
@@ -114,7 +112,6 @@ export default function Register() {
                 onFocus={focus} onBlur={blur_} autoComplete="email" />
             </div>
 
-            {/* PASSWORD */}
             <div style={{ marginBottom:14 }}>
               <label style={{ display:'block', fontSize:10, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Password</label>
               <div style={{ position:'relative' }}>
@@ -129,7 +126,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* CONFIRM */}
             <div style={{ marginBottom:26 }}>
               <label style={{ display:'block', fontSize:10, fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'var(--muted)', marginBottom:8 }}>Confirm Password</label>
               <input style={inputStyle} type={showPw ? 'text' : 'password'} placeholder="repeat password"
