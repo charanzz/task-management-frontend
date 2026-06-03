@@ -328,6 +328,8 @@ export default function Dashboard(){
   const [viewMode,setViewMode]=useState('list')
   const [roleFromApi,setRoleFromApi]=useState('USER')
   const [trialDaysLeft,setTrialDaysLeft]=useState(null)
+  // ── NEW: track last successful fetch timestamp ────────────────────────────
+  const [lastFetched,setLastFetched]=useState(null)
   const {user,login,logout}=useAuth()
   const navigate=useNavigate()
 
@@ -336,17 +338,72 @@ export default function Dashboard(){
 
   const isAdmin=roleFromApi==='ADMIN'
 
-  const fetchAll=useCallback(async()=>{
+  // ── UPDATED fetchAll: cache-aware + auto-retry (handles Render cold start) ─
+  const fetchAll=useCallback(async(retryCount=0)=>{
+    // Show skeleton only if no cached data
+    const hasCached=sessionStorage.getItem('tf_tasks')
+    if(!hasCached)setLoading(true)
     try{
-      const [tr,sr,lr,br]=await Promise.all([api.get('/api/tasks'),api.get('/api/tasks/stats').catch(()=>({data:null})),api.get('/api/users/level').catch(()=>({data:{level:1,focusScore:0,nextLevelAt:100}})),api.get('/api/users/badges').catch(()=>({data:[]}))])
-      setTasks(Array.isArray(tr.data?.content)?tr.data.content:Array.isArray(tr.data)?tr.data:[])
+      const [tr,sr,lr,br]=await Promise.all([
+        api.get('/api/tasks'),
+        api.get('/api/tasks/stats').catch(()=>({data:null})),
+        api.get('/api/users/level').catch(()=>({data:{level:1,focusScore:0,nextLevelAt:100}})),
+        api.get('/api/users/badges').catch(()=>({data:[]})),
+      ])
+      const taskData=Array.isArray(tr.data?.content)
+        ?tr.data.content
+        :Array.isArray(tr.data)?tr.data:[]
+      setTasks(taskData)
       setStats(sr.data)
       if(lr.data)setLvl(lr.data)
       if(Array.isArray(br.data))setBadges(br.data)
-    }catch(e){console.error(e);flash('error','⚠ Failed to load')}
-    finally{setLoading(false)}
+      setLastFetched(Date.now())
+      // Cache for instant next load
+      try{
+        sessionStorage.setItem('tf_tasks',JSON.stringify(taskData))
+        sessionStorage.setItem('tf_stats',JSON.stringify(sr.data))
+        sessionStorage.setItem('tf_lvl',JSON.stringify(lr.data))
+      }catch{}
+    }catch(e){
+      console.error('fetchAll error:',e)
+      // Auto-retry up to 3 times with backoff (handles Render cold start)
+      if(retryCount<3){
+        const delay=(retryCount+1)*4000 // 4s, 8s, 12s
+        setTimeout(()=>fetchAll(retryCount+1),delay)
+      }else{
+        flash('error','⚠ Failed to load — please refresh')
+      }
+    }finally{
+      setLoading(false)
+    }
   },[])
-  useEffect(()=>{fetchAll()},[fetchAll])
+
+  // ── UPDATED bootstrap effect: load cache instantly, then fetch fresh ───────
+  useEffect(()=>{
+    try{
+      const ct=sessionStorage.getItem('tf_tasks')
+      const cl=sessionStorage.getItem('tf_lvl')
+      const cs=sessionStorage.getItem('tf_stats')
+      if(ct){setTasks(JSON.parse(ct));setLoading(false)}
+      if(cl)setLvl(JSON.parse(cl))
+      if(cs)setStats(JSON.parse(cs))
+    }catch{}
+    // Always fetch fresh in background
+    fetchAll()
+  },[fetchAll])
+
+  // ── NEW: refetch when tab regains focus (if stale > 2 min) ────────────────
+  useEffect(()=>{
+    const handleVisibility=()=>{
+      if(document.visibilityState==='visible'){
+        if(!lastFetched||Date.now()-lastFetched>120000){
+          fetchAll()
+        }
+      }
+    }
+    document.addEventListener('visibilitychange',handleVisibility)
+    return()=>document.removeEventListener('visibilitychange',handleVisibility)
+  },[fetchAll,lastFetched])
 
   function flash(type,msg){setToast({type,msg});setTimeout(()=>setToast(null),3500)}
   async function handleSave(data){if(editTask){await api.put(`/api/tasks/${editTask.id}`,data);flash('success','✓ Task updated!')}else{await api.post('/api/tasks',data);flash('success','⚡ Task created!')}setModal(false);setEditTask(null);fetchAll()}
