@@ -22,7 +22,7 @@ import AdvancedAnalytics from './AdvancedAnalytics'
 import GoogleCalendarSync from './GoogleCalendarSync'
 import EmailToTask from './EmailToTask'
 import AITaskBreakdown from './AITaskBreakdown'
-import ExamPathsView from './ExamPathsView'
+import ExamPathsLocked from './ExamPathsLocked'
 
 const PRI = {
   HIGH:   { color:'#ff6b6b', bg:'rgba(255,107,107,.12)', label:'High',   pts:30, emoji:'🔴' },
@@ -108,6 +108,69 @@ function Avatar({name,size=28}){
   const colors=['#7c3aed','#0ea5e9','#f59e0b','#10b981','#ef4444']
   const bg=colors[(name?.charCodeAt(0)||0)%colors.length]
   return <div style={{width:size,height:size,borderRadius:size*.28,background:`linear-gradient(135deg,${bg},${bg}bb)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:size*.42,fontWeight:800,color:'#fff',flexShrink:0}}>{(name?.[0]||'?').toUpperCase()}</div>
+}
+
+// ── Quick Add Bar ─────────────────────────────────────────────────────────
+const QA_PRIORITIES = [
+  { key:'HIGH',   emoji:'🔴', label:'High',   pts:30, color:'#ff6b6b', bg:'rgba(255,107,107,.15)' },
+  { key:'MEDIUM', emoji:'🟡', label:'Medium', pts:15, color:'#ffd93d', bg:'rgba(255,217,61,.15)'  },
+  { key:'LOW',    emoji:'🟢', label:'Low',    pts:5,  color:'#6bcb77', bg:'rgba(107,203,119,.15)' },
+]
+function QuickAddBar({onTaskCreated}){
+  const [title,setTitle]=useState('')
+  const [priority,setPriority]=useState('MEDIUM')
+  const [date,setDate]=useState('')
+  const [expanded,setExpanded]=useState(false)
+  const [saving,setSaving]=useState(false)
+  const [flash,setFlash]=useState(false)
+  const inputRef=useRef(null)
+  useEffect(()=>{if(flash){const t=setTimeout(()=>setFlash(false),600);return()=>clearTimeout(t)}},[flash])
+  async function handleSubmit(){
+    if(!title.trim()){inputRef.current?.focus();return}
+    setSaving(true)
+    try{
+      await api.post('/api/tasks',{title:title.trim(),priority,status:'TODO',dueDate:date?`${date}T09:00:00`:null})
+      setTitle('');setDate('');setPriority('MEDIUM');setExpanded(false);setFlash(true)
+      onTaskCreated?.()
+    }catch(e){console.error(e)}
+    finally{setSaving(false)}
+  }
+  function handleKey(e){
+    if(e.key==='Enter')handleSubmit()
+    if(e.key==='Escape'){setExpanded(false);setTitle('');inputRef.current?.blur()}
+  }
+  const pri=QA_PRIORITIES.find(p=>p.key===priority)
+  return(
+    <div style={{marginBottom:20,borderRadius:16,border:`1px solid ${expanded?'rgba(124,58,237,.35)':'rgba(255,255,255,.08)'}`,background:expanded?'rgba(124,58,237,.04)':'var(--surface)',transition:'all .2s ease',overflow:'hidden',boxShadow:expanded?'0 0 0 3px rgba(124,58,237,.08)':'none'}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px'}}>
+        <div style={{width:28,height:28,borderRadius:8,flexShrink:0,background:flash?'var(--success)':expanded?'var(--accent)':'var(--surface2)',border:`1.5px solid ${flash?'var(--success)':expanded?'var(--accent)':'var(--border2)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,color:flash?'#fff':expanded?'#fff':'var(--muted)',transition:'all .2s',cursor:'pointer',transform:flash?'scale(1.15)':'scale(1)'}} onClick={()=>{inputRef.current?.focus();setExpanded(true)}}>
+          {flash?'✓':saving?'⏳':'+'}
+        </div>
+        <input ref={inputRef} type="text" placeholder={expanded?'What needs to be done?':'Add a task...  (press Enter)'} value={title} onChange={e=>setTitle(e.target.value)} onFocus={()=>setExpanded(true)} onKeyDown={handleKey}
+          style={{flex:1,background:'none',border:'none',outline:'none',color:'var(--text)',fontSize:14,fontFamily:'DM Sans,sans-serif',fontWeight:500}}/>
+        {!expanded&&<span style={{fontSize:10,fontWeight:700,padding:'3px 8px',borderRadius:6,background:pri.bg,color:pri.color,flexShrink:0}}>{pri.emoji} {pri.label}</span>}
+        {expanded&&title&&(
+          <button onClick={handleSubmit} disabled={saving} style={{padding:'6px 14px',borderRadius:9,border:'none',flexShrink:0,background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',boxShadow:'0 2px 10px var(--glow)'}}>
+            {saving?'...':'⚡ Add'}
+          </button>
+        )}
+      </div>
+      {expanded&&(
+        <div style={{padding:'0 16px 14px',borderTop:'1px solid var(--border)',paddingTop:12,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',animation:'fadeUp .15s ease'}}>
+          {QA_PRIORITIES.map(p=>(
+            <button key={p.key} onClick={()=>setPriority(p.key)} style={{padding:'5px 11px',borderRadius:20,border:`1.5px solid ${priority===p.key?p.color:'var(--border2)'}`,background:priority===p.key?p.bg:'transparent',color:priority===p.key?p.color:'var(--muted)',fontSize:11,fontWeight:700,cursor:'pointer',transition:'all .15s',display:'flex',alignItems:'center',gap:4}}>
+              {p.emoji} {p.label} <span style={{opacity:.6}}>+{p.pts}pts</span>
+            </button>
+          ))}
+          <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:'auto'}}>
+            <span style={{fontSize:11,color:'var(--muted)'}}>📅</span>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{background:'var(--surface2)',border:'1px solid var(--border2)',borderRadius:8,color:'var(--text)',fontSize:11,padding:'4px 8px',outline:'none',colorScheme:'dark',fontFamily:'DM Sans,sans-serif'}}/>
+            {date&&<button onClick={()=>setDate('')} style={{background:'none',border:'none',color:'var(--muted)',cursor:'pointer',fontSize:12}}>✕</button>}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 function SubTaskList({taskId}){
@@ -199,7 +262,6 @@ function TaskModal({task,onClose,onSave,me}){
           {tab==='details'&&(<>
             <div style={{marginBottom:14}}><label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Task Title *</label><input autoFocus style={INP} placeholder="What needs to be done?" value={f.title} onChange={e=>set('title',e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} onFocus={focus} onBlur={blur}/></div>
             <div style={{marginBottom:14}}><label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Description</label><textarea style={{...INP,resize:'vertical',lineHeight:1.6}} rows={2} placeholder="Add details… (optional)" value={f.description} onChange={e=>set('description',e.target.value)} onFocus={focus} onBlur={blur}/></div>
-            <div style={{marginBottom:14}}><label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Tags</label><input style={INP} placeholder="work, urgent, personal…" value={f.tags||''} onChange={e=>set('tags',e.target.value)} onFocus={focus} onBlur={blur}/>{f.tags&&<div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:6}}>{f.tags.split(',').map(t=>t.trim()).filter(Boolean).map(tag=>(<span key={tag} style={{fontSize:10,padding:'2px 8px',borderRadius:20,background:'rgba(124,58,237,.12)',color:'#a855f7',border:'1px solid rgba(124,58,237,.2)',fontWeight:600}}>#{tag}</span>))}</div>}</div>
             <div style={{marginBottom:14}}><label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Priority</label><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>{Object.entries(PRI).map(([v,cfg])=>(<button key={v} onClick={()=>set('priority',v)} style={{padding:'10px 8px',borderRadius:10,cursor:'pointer',background:f.priority===v?cfg.bg:'var(--surface2)',border:`1.5px solid ${f.priority===v?cfg.color:'var(--border)'}`,color:f.priority===v?cfg.color:'var(--muted)',fontSize:12,fontWeight:600,display:'flex',flexDirection:'column',alignItems:'center',gap:4,transition:'all .15s'}}><span style={{fontSize:17}}>{cfg.emoji}</span><span>{cfg.label}</span><span style={{fontSize:10,opacity:.7}}>+{cfg.pts}pts</span></button>))}</div></div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}><div><label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Due Date</label><input style={INP} type="date" value={f.dueDate} onChange={e=>set('dueDate',e.target.value)} onFocus={focus} onBlur={blur}/></div><div><label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Time</label><input style={INP} type="time" value={f.dueTime} onChange={e=>set('dueTime',e.target.value)} onFocus={focus} onBlur={blur}/></div></div>
             {isEdit&&(<div style={{marginBottom:14}}><label style={{display:'block',fontSize:10,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:7}}>Status</label><select style={{...INP,cursor:'pointer'}} value={f.status} onChange={e=>set('status',e.target.value)}>{Object.entries(STATUS).map(([v,s])=><option key={v} value={v}>{s.emoji} {s.label}</option>)}</select></div>)}
@@ -319,17 +381,16 @@ export default function Dashboard(){
   const [toast,setToast]=useState(null)
   const [sideOpen,setSideOpen]=useState(true)
   const [showOnboarding,setShowOnboarding]=useState(false)
+  const [lastFetched,setLastFetched]=useState(null)
   const [navOpen,setNavOpen]=useState({focus:true,insights:false,collaborate:false,tools:false})
   const toggleNav=(k)=>setNavOpen(p=>({...p,[k]:!p[k]}))
   const NAV_GROUPS={focus:['focus','pomodoro','habits','calendar','paths'],insights:['analytics','weekly','advanced-analytics','matrix'],collaborate:['teams','leaderboard','ai'],tools:['reminders','export','gcal','email-task','ai-breakdown']}
   const openGroupForView=(v)=>{const grp=Object.entries(NAV_GROUPS).find(([,items])=>items.includes(v));if(grp)setNavOpen(p=>({...p,[grp[0]]:true}))}
-  const [theme,setTheme]=useState(()=>localStorage.getItem('tf_theme')||'dark')
+  const [theme]=useState(()=>localStorage.getItem('tf_theme')||'dark')
   const [view,setView]=useState('tasks')
   const [viewMode,setViewMode]=useState('list')
   const [roleFromApi,setRoleFromApi]=useState('USER')
   const [trialDaysLeft,setTrialDaysLeft]=useState(null)
-  // ── NEW: track last successful fetch timestamp ────────────────────────────
-  const [lastFetched,setLastFetched]=useState(null)
   const {user,login,logout}=useAuth()
   const navigate=useNavigate()
 
@@ -338,9 +399,8 @@ export default function Dashboard(){
 
   const isAdmin=roleFromApi==='ADMIN'
 
-  // ── UPDATED fetchAll: cache-aware + auto-retry (handles Render cold start) ─
+  // ── fetchAll with retry + cache ───────────────────────────────────────────
   const fetchAll=useCallback(async(retryCount=0)=>{
-    // Show skeleton only if no cached data
     const hasCached=sessionStorage.getItem('tf_tasks')
     if(!hasCached)setLoading(true)
     try{
@@ -350,35 +410,28 @@ export default function Dashboard(){
         api.get('/api/users/level').catch(()=>({data:{level:1,focusScore:0,nextLevelAt:100}})),
         api.get('/api/users/badges').catch(()=>({data:[]})),
       ])
-      const taskData=Array.isArray(tr.data?.content)
-        ?tr.data.content
-        :Array.isArray(tr.data)?tr.data:[]
+      const taskData=Array.isArray(tr.data?.content)?tr.data.content:Array.isArray(tr.data)?tr.data:[]
       setTasks(taskData)
       setStats(sr.data)
       if(lr.data)setLvl(lr.data)
       if(Array.isArray(br.data))setBadges(br.data)
       setLastFetched(Date.now())
-      // Cache for instant next load
       try{
         sessionStorage.setItem('tf_tasks',JSON.stringify(taskData))
         sessionStorage.setItem('tf_stats',JSON.stringify(sr.data))
         sessionStorage.setItem('tf_lvl',JSON.stringify(lr.data))
       }catch{}
     }catch(e){
-      console.error('fetchAll error:',e)
-      // Auto-retry up to 3 times with backoff (handles Render cold start)
+      console.error(e)
       if(retryCount<3){
-        const delay=(retryCount+1)*4000 // 4s, 8s, 12s
-        setTimeout(()=>fetchAll(retryCount+1),delay)
-      }else{
+        setTimeout(()=>fetchAll(retryCount+1),(retryCount+1)*4000)
+      } else {
         flash('error','⚠ Failed to load — please refresh')
       }
-    }finally{
-      setLoading(false)
-    }
+    }finally{setLoading(false)}
   },[])
 
-  // ── UPDATED bootstrap effect: load cache instantly, then fetch fresh ───────
+  // Load cache instantly, then fetch fresh
   useEffect(()=>{
     try{
       const ct=sessionStorage.getItem('tf_tasks')
@@ -388,17 +441,14 @@ export default function Dashboard(){
       if(cl)setLvl(JSON.parse(cl))
       if(cs)setStats(JSON.parse(cs))
     }catch{}
-    // Always fetch fresh in background
     fetchAll()
   },[fetchAll])
 
-  // ── NEW: refetch when tab regains focus (if stale > 2 min) ────────────────
+  // Refetch when tab becomes visible again
   useEffect(()=>{
     const handleVisibility=()=>{
       if(document.visibilityState==='visible'){
-        if(!lastFetched||Date.now()-lastFetched>120000){
-          fetchAll()
-        }
+        if(!lastFetched||Date.now()-lastFetched>120000)fetchAll()
       }
     }
     document.addEventListener('visibilitychange',handleVisibility)
@@ -443,7 +493,7 @@ export default function Dashboard(){
     if(view==='gcal')return<>📅 <span style={{color:'var(--accent2)'}}>Google Calendar</span></>
     if(view==='email-task')return<>📧 <span style={{color:'var(--accent2)'}}>Email → Task</span></>
     if(view==='ai-breakdown')return<>🧠 <span style={{color:'var(--accent2)'}}>AI Task Breakdown</span></>
-    if(view==='paths')return<>📚 <span style={{color:'var(--accent2)'}}>Exam Paths</span></>
+    if(view==='paths')return<>🔒 <span style={{color:'#f59e0b'}}>Exam Paths</span></>
     return<>{greet}, <span style={{color:'var(--accent2)'}}>{user?.name||'there'}</span> ✦</>
   }
 
@@ -462,7 +512,7 @@ export default function Dashboard(){
               <p style={{fontSize:9,fontWeight:700,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',padding:'0 8px',marginBottom:6}}>TASKS</p>
               {navItems.map(item=>{const active=view==='tasks'&&filter===item.key;return(<button key={item.key} className="nav-item" onClick={()=>{setFilter(item.key);setView('tasks')}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'9px 10px',borderRadius:10,marginBottom:2,cursor:'pointer',fontSize:13,fontWeight:500,textAlign:'left',transition:'all .12s',background:active?'rgba(124,58,237,.1)':'transparent',color:active?'var(--accent2)':'var(--muted)',border:active?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}><span style={{width:17,textAlign:'center'}}>{item.icon}</span><span style={{flex:1}}>{item.label}</span><span style={{fontSize:10,padding:'1px 7px',borderRadius:6,background:'var(--surface2)',color:'var(--muted)'}}>{item.count}</span></button>)})}
               {[
-                {key:'focus',label:'Focus & Habits',icon:'🎯',items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null],['paths','📚','Exam Paths',null]]},
+                {key:'focus',label:'Focus & Habits',icon:'🎯',items:[['focus','🎯','Daily Focus',null],['pomodoro','⏱','Pomodoro',null],['habits','🔥','Habits',null],['calendar','📅','Calendar',null],['paths','🔒','Exam Paths','SOON']]},
                 {key:'insights',label:'Insights',icon:'📊',items:[['analytics','📊','Analytics',null],['advanced-analytics','📈','Deep Analytics',null],['weekly','📋','Weekly Review',null],['matrix','⚡','Priority Matrix',null]]},
                 {key:'collaborate',label:'Teams & Social',icon:'👥',items:[['teams','👥','Teams',null],['leaderboard','🏆','Leaderboard',null],['ai','🤖','AI Assistant',null]]},
                 {key:'tools',label:'Tools',icon:'🔧',items:[['reminders','⏰','Reminders',null],['gcal','📅','Google Cal',null],['email-task','📧','Email→Task',null],['ai-breakdown','🧠','AI Breakdown','NEW'],['export','📤','Export',null]]},
@@ -482,7 +532,7 @@ export default function Dashboard(){
                           <button key={v} className="nav-item" onClick={()=>{setView(v);openGroupForView(v)}} style={{width:'100%',display:'flex',alignItems:'center',gap:9,padding:'8px 10px',borderRadius:9,marginBottom:1,cursor:'pointer',fontSize:12,fontWeight:500,textAlign:'left',transition:'all .12s',background:view===v?'rgba(124,58,237,.12)':'transparent',color:view===v?'var(--accent2)':'var(--muted)',border:view===v?'1px solid rgba(124,58,237,.2)':'1px solid transparent'}}>
                             <span style={{width:16,textAlign:'center',fontSize:13}}>{ic}</span>
                             <span style={{flex:1}}>{lb}</span>
-                            {badge&&<span style={{fontSize:9,padding:'2px 5px',borderRadius:4,background:'linear-gradient(135deg,#7c3aed,#a855f7)',color:'#fff',fontWeight:700}}>{badge}</span>}
+                            {badge&&<span style={{fontSize:9,padding:'2px 5px',borderRadius:4,background:badge==='SOON'?'linear-gradient(135deg,#f59e0b,#fbbf24)':'linear-gradient(135deg,#7c3aed,#a855f7)',color:'#fff',fontWeight:700}}>{badge}</span>}
                           </button>
                         ))}
                       </div>
@@ -538,7 +588,7 @@ export default function Dashboard(){
             :view==='gcal'?<GoogleCalendarSync tasks={tasks}/>
             :view==='email-task'?<EmailToTask onTaskCreated={fetchAll}/>
             :view==='ai-breakdown'?<AITaskBreakdown onSaved={fetchAll}/>
-            :view==='paths'?<ExamPathsView/>
+            :view==='paths'?<ExamPathsLocked/>
             :view==='profile'?<ProfilePage/>
             :view==='analytics'?<AnalyticsPanel/>
             :view==='ai'?<AIPanel onTaskParsed={t=>{setEditTask(null);setModal(true)}}/>
@@ -550,10 +600,11 @@ export default function Dashboard(){
                   {[{label:'Completed',value:stats?.completedTasks??done,sub:`of ${tasks.length} total`,color:'var(--success)',icon:'✓',delay:0},{label:'Focus Score',value:stats?.focusScore??0,sub:'points earned',color:'var(--accent2)',icon:'⚡',delay:70},{label:'Day Streak',value:stats?.streak??0,sub:'days in a row',color:'var(--warn)',icon:'🔥',delay:140},{label:'Pending',value:pending,sub:`${high} high priority`,color:'var(--danger)',icon:'⏳',delay:210}].map(s=>(<div key={s.label} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:16,padding:'18px 20px',position:'relative',overflow:'hidden',animation:`fadeUp .5s ease both`,animationDelay:`${s.delay}ms`}}><div style={{position:'absolute',top:0,left:0,right:0,height:2,background:`linear-gradient(90deg,${s.color},transparent)`}}/><div style={{position:'absolute',top:12,right:14,fontSize:20,opacity:.08}}>{s.icon}</div><p style={{fontSize:9,fontWeight:600,letterSpacing:'2px',textTransform:'uppercase',color:'var(--muted)',marginBottom:9,fontFamily:'Syne,sans-serif'}}>{s.label}</p><p style={{fontSize:32,fontWeight:800,color:s.color,lineHeight:1,marginBottom:5,fontFamily:'Syne,sans-serif'}}>{s.value}</p><p style={{fontSize:11,color:'var(--muted)'}}>{s.sub}</p></div>))}
                 </div>
                 {viewMode==='list'&&(<>
+                  <QuickAddBar onTaskCreated={fetchAll}/>
                   <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:14,flexWrap:'wrap'}}>{fBtn('ALL','All',tasks.length)}{fBtn('TODO','To Do',tasks.filter(t=>t.status==='TODO').length)}{fBtn('IN_PROGRESS','In Progress',tasks.filter(t=>t.status==='IN_PROGRESS').length)}{fBtn('DONE','Done',done)}<span style={{marginLeft:'auto',fontSize:11,color:'var(--muted)'}}>{filtered.length} task{filtered.length!==1?'s':''}</span></div>
                   {loading?[1,2,3,4].map(i=><div key={i} className="skel" style={{height:64,marginBottom:8}}/>)
                     :filtered.length===0
-                      ?<div style={{textAlign:'center',padding:'70px 0',animation:'fadeUp .4s ease'}}><div style={{fontSize:48,marginBottom:14}}>{search?'🔍':filter==='DONE'?'🎉':'📋'}</div><p style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6,fontFamily:'Syne,sans-serif'}}>{search?'No results':filter==='DONE'?'No completed tasks':'No tasks yet'}</p><p style={{fontSize:13,color:'var(--muted)',marginBottom:22}}>{search?'Try a different search':'Click "+ New Task" to get started'}</p>{!search&&<button onClick={openNew} style={{padding:'10px 26px',borderRadius:10,border:'none',background:'linear-gradient(135deg,var(--accent),var(--accent2))',color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer'}}>+ Create First Task</button>}</div>
+                      ?<div style={{textAlign:'center',padding:'70px 0',animation:'fadeUp .4s ease'}}><div style={{fontSize:48,marginBottom:14}}>{search?'🔍':filter==='DONE'?'🎉':'📋'}</div><p style={{fontSize:16,fontWeight:700,color:'var(--text)',marginBottom:6,fontFamily:'Syne,sans-serif'}}>{search?'No results':filter==='DONE'?'No completed tasks':'No tasks yet'}</p><p style={{fontSize:13,color:'var(--muted)',marginBottom:22}}>{search?'Try a different search':'Type above and press Enter to get started'}</p></div>
                       :filtered.map((t,i)=><TaskRow key={t.id} task={t} idx={i} onToggle={()=>handleToggle(t.id)} onEdit={()=>openEdit(t)} onDelete={()=>handleDelete(t.id)}/>)
                   }
                 </>)}
@@ -572,7 +623,7 @@ export default function Dashboard(){
           </div>
         )}
         <nav className="bnav" style={{justifyContent:'space-around',alignItems:'center'}}>
-          {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['paths','📚','Paths'],['leaderboard','🏆','Ranks'],['profile','👤','Me']].map(([v,ic,lb])=>(
+          {[['tasks','📋','Tasks'],['focus','🎯','Focus'],['paths','🔒','Paths'],['leaderboard','🏆','Ranks'],['profile','👤','Me']].map(([v,ic,lb])=>(
             <button key={v} className="bnav-btn" onClick={()=>{setView(v);setSideOpen(false)}} style={{color:view===v?'var(--accent2)':'var(--muted)',fontWeight:view===v?700:400}}>
               <span style={{fontSize:20,lineHeight:1,display:'block',transform:view===v?'translateY(-1px)':'none',transition:'transform .15s'}}>{ic}</span>
               <span style={{fontSize:9,letterSpacing:'.3px'}}>{lb}</span>
