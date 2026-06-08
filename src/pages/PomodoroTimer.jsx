@@ -1,515 +1,682 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 
+// ─── Constants ───────────────────────────────────────────
 const MODES = {
-  focus: { label: "Focus", color: "#c084fc", glow: "rgba(192,132,252,0.35)", bg: "rgba(192,132,252,0.08)", emoji: "🎯" },
-  short: { label: "Short Break", color: "#34d399", glow: "rgba(52,211,153,0.35)", bg: "rgba(52,211,153,0.08)", emoji: "☕" },
-  long:  { label: "Long Break",  color: "#60a5fa", glow: "rgba(96,165,250,0.35)", bg: "rgba(96,165,250,0.08)", emoji: "🌿" },
+  focus: { label: "Focus", color: "#e8d5b0", accent: "#c9a96e", glow: "rgba(201,169,110,0.2)", dim: "rgba(232,213,176,0.06)", tip: "Deep work" },
+  short: { label: "Short Break", color: "#a8c4b8", accent: "#6ba898", glow: "rgba(107,168,152,0.2)", dim: "rgba(168,196,184,0.06)", tip: "Rest eyes" },
+  long:  { label: "Long Break",  color: "#a8b8d4", accent: "#6b8ec9", glow: "rgba(107,142,201,0.2)", dim: "rgba(168,184,212,0.06)", tip: "Recharge" },
 }
+const DEFAULTS = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 }
 
-const DEFAULT_SECS = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 }
+const PRESET_TASKS = [
+  "Design system", "Code review", "Deep work", "Writing", "Research", "Planning", "Learning"
+]
 
-function secsToHMS(s) {
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
-  const sec = s % 60
-  return { h, m, sec }
+function p2(n) { return String(Math.max(0, n)).padStart(2, "0") }
+function fmtHMS(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60
+  if (h > 0) return `${p2(h)}:${p2(m)}:${p2(sec)}`
+  return `${p2(m)}:${p2(sec)}`
 }
-
-function formatDisplay(s) {
-  const { h, m, sec } = secsToHMS(s)
-  if (h > 0) return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`
-  return `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`
-}
-
-function fmtHM(s) {
-  const h = Math.floor(s / 3600)
-  const m = Math.floor((s % 3600) / 60)
+function fmtShort(s) {
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
   if (h > 0 && m > 0) return `${h}h ${m}m`
   if (h > 0) return `${h}h`
-  return `${m}m`
+  if (m > 0) return `${m}m`
+  return `${s}s`
+}
+function parseInput(v) {
+  v = v.trim()
+  if (/^\d+:\d+:\d+$/.test(v)) { const [h,m,s]=v.split(":").map(Number); return Math.min(h*3600+m*60+s,43200) }
+  if (/^\d+:\d+$/.test(v))     { const [m,s]=v.split(":").map(Number); return Math.min(m*60+s,43200) }
+  const hm = v.match(/^(\d+)h(\d+)m?$/); if (hm) return Math.min(+hm[1]*3600 + +hm[2]*60, 43200)
+  const h  = v.match(/^(\d+)h$/);        if (h)  return Math.min(+h[1]*3600, 43200)
+  const m  = v.match(/^(\d+)m$/);        if (m)  return Math.min(+m[1]*60, 43200)
+  const n  = parseInt(v);                 if (!isNaN(n)) return Math.min(n*60, 43200)
+  return null
 }
 
 function playChime() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const freqs = [523, 659, 784, 1047]
-    freqs.forEach((f, i) => {
+    [[523,0],[659,0.2],[784,0.4],[1047,0.6],[784,0.9]].forEach(([f,t]) => {
       const o = ctx.createOscillator(), g = ctx.createGain()
       o.connect(g); g.connect(ctx.destination)
       o.frequency.value = f; o.type = "sine"
-      const t = ctx.currentTime + i * 0.18
-      g.gain.setValueAtTime(0.35, t)
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.4)
-      o.start(t); o.stop(t + 0.45)
+      g.gain.setValueAtTime(0, ctx.currentTime+t)
+      g.gain.linearRampToValueAtTime(0.22, ctx.currentTime+t+0.05)
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+t+0.5)
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.55)
     })
-    setTimeout(() => ctx.close(), 3000)
+    setTimeout(() => ctx.close(), 4000)
   } catch(e) {}
 }
 
-// Time input parser: accepts "1:30:00", "90:00", "1h30m", "5400", plain number = minutes
-function parseTimeInput(val) {
-  val = val.trim()
-  // hh:mm:ss or mm:ss
-  if (/^\d+:\d+:\d+$/.test(val)) {
-    const [h,m,s] = val.split(":").map(Number)
-    return Math.min(h*3600 + m*60 + s, 12*3600)
-  }
-  if (/^\d+:\d+$/.test(val)) {
-    const [m,s] = val.split(":").map(Number)
-    return Math.min(m*60 + s, 12*3600)
-  }
-  // 1h30m style
-  const hm = val.match(/^(\d+)h(\d+)m?$/)
-  if (hm) return Math.min(parseInt(hm[1])*3600 + parseInt(hm[2])*60, 12*3600)
-  const h = val.match(/^(\d+)h$/)
-  if (h) return Math.min(parseInt(h[1])*3600, 12*3600)
-  const m = val.match(/^(\d+)m$/)
-  if (m) return Math.min(parseInt(m[1])*60, 12*3600)
-  // plain number = minutes
-  const n = parseInt(val)
-  if (!isNaN(n)) return Math.min(n * 60, 12*3600)
-  return null
+// ─── Ring SVG ──────────────────────────────────────────
+function Ring({ progress, color, size = 280, strokeWidth = 3 }) {
+  const r = (size - strokeWidth * 2) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ * (1 - Math.max(0, Math.min(1, progress)))
+  return (
+    <svg width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(-90deg)" }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none"
+        stroke="rgba(255,255,255,0.04)" strokeWidth={strokeWidth} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none"
+        stroke={color} strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1), stroke 0.4s ease" }} />
+    </svg>
+  )
 }
 
-function secsToInput(s) {
-  const { h, m, sec } = secsToHMS(s)
-  if (h > 0) return `${h}:${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`
-  return `${m}:${String(sec).padStart(2,"0")}`
+// ─── Spin Field ────────────────────────────────────────
+function SpinField({ val, onChange, max, fontSize = 68, color }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState("")
+  const inputRef = useRef(null)
+
+  const commit = () => {
+    const n = parseInt(draft)
+    if (!isNaN(n)) onChange(Math.max(0, Math.min(max, n)))
+    setEditing(false)
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+      <button onClick={() => onChange(Math.min(max, val + 1))}
+        style={{ width: 28, height: 22, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 6, color: "rgba(255,255,255,0.35)", fontSize: 14, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
+          lineHeight: 1, fontFamily: "inherit" }}
+        onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.1)"}
+        onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"}>
+        +
+      </button>
+      {editing ? (
+        <input ref={inputRef} value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false) }}
+          autoFocus
+          style={{ width: fontSize < 50 ? 60 : 90, fontSize, fontFamily: "'DM Mono', monospace",
+            fontWeight: 500, color, background: "transparent", border: "none",
+            borderBottom: `1px solid ${color}`, textAlign: "center", outline: "none",
+            letterSpacing: "-2px" }} />
+      ) : (
+        <div onClick={() => { setDraft(p2(val)); setEditing(true) }}
+          style={{ fontSize, fontFamily: "'DM Mono', monospace", fontWeight: 500,
+            color, letterSpacing: "-3px", lineHeight: 1, cursor: "text",
+            minWidth: fontSize < 50 ? 60 : 90, textAlign: "center",
+            transition: "color 0.3s" }}>
+          {p2(val)}
+        </div>
+      )}
+      <button onClick={() => onChange(Math.max(0, val - 1))}
+        style={{ width: 28, height: 22, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 6, color: "rgba(255,255,255,0.35)", fontSize: 14, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
+          lineHeight: 1, fontFamily: "inherit" }}
+        onMouseEnter={e => e.currentTarget.style.background="rgba(255,255,255,0.1)"}
+        onMouseLeave={e => e.currentTarget.style.background="rgba(255,255,255,0.05)"}>
+        −
+      </button>
+    </div>
+  )
 }
 
-const BAR_COLORS = ["#c084fc","#818cf8","#60a5fa","#34d399","#f59e0b"]
+// ─── Task Log Row ──────────────────────────────────────
+function TaskRow({ name, secs, sessions, color, rank }) {
+  const w = Math.min(100, Math.round((secs / Math.max(secs, 1)) * 100))
+  return (
+    <div style={{ padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{name}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>{sessions} session{sessions !== 1 ? "s" : ""}</span>
+          <span style={{ fontSize: 13, color, fontWeight: 600, fontFamily: "'DM Mono', monospace" }}>{fmtShort(secs)}</span>
+        </div>
+      </div>
+      <div style={{ height: 2, background: "rgba(255,255,255,0.06)", borderRadius: 1 }}>
+        <div style={{ height: "100%", width: `${w}%`, background: color, borderRadius: 1,
+          transition: "width 0.6s cubic-bezier(0.4,0,0.2,1)", opacity: 0.7 }} />
+      </div>
+    </div>
+  )
+}
 
-export default function Pomodoro() {
-  const [mode, setMode] = useState("focus")
-  const [durations, setDurations] = useState({...DEFAULT_SECS})
-  const [secs, setSecs] = useState(DEFAULT_SECS.focus)
-  const [running, setRunning] = useState(false)
+// ─── Main Component ────────────────────────────────────
+export default function PremiumPomodoro() {
+  const [mode, setMode]         = useState("focus")
+  const [durations, setDur]     = useState({ ...DEFAULTS })
+  const [secs, setSecs]         = useState(DEFAULTS.focus)
+  const [running, setRunning]   = useState(false)
   const [sessions, setSessions] = useState(0)
-  const [alert, setAlert] = useState(null)
+  const [alert, setAlert]       = useState(null)
 
-  // Analytics: array of { mode, secs, at }
-  const [log, setLog] = useState([])
-  const [editingTime, setEditingTime] = useState(false)
-  const [editVal, setEditVal] = useState("")
-  const [editErr, setEditErr] = useState(false)
+  // Task tracking
+  const [task, setTask]         = useState("")
+  const [taskInput, setTaskInput] = useState("")
+  const [showTaskInput, setShowTaskInput] = useState(false)
+  // log: { mode, secs, task, at }
+  const [log, setLog]           = useState([])
 
-  const intervalRef = useRef(null)
+  const timerRef = useRef(null)
   const cfg = MODES[mode]
+
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
+  const s = secs % 60
   const total = durations[mode]
   const progress = total > 0 ? secs / total : 0
 
-  const SIZE = 280, R = (SIZE - 18) / 2, CIRC = 2 * Math.PI * R
-  const offset = CIRC * (1 - progress)
-
   const stopTimer = useCallback(() => {
-    clearInterval(intervalRef.current)
-    setRunning(false)
+    clearInterval(timerRef.current); setRunning(false)
   }, [])
 
-  const switchMode = useCallback((m) => {
-    stopTimer()
-    setMode(m)
-    setAlert(null)
-    setSecs(durations[m])
-  }, [durations, stopTimer])
-
-  const reset = () => {
-    stopTimer()
-    setAlert(null)
-    setSecs(durations[mode])
+  const switchMode = (m) => {
+    stopTimer(); setMode(m); setSecs(durations[m]); setAlert(null)
   }
+
+  const reset = () => { stopTimer(); setSecs(durations[mode]); setAlert(null) }
+
+  const setH = (v) => { const ns = v*3600+m*60+s; const nd={...durations,[mode]:Math.max(10,ns)}; setDur(nd); setSecs(nd[mode]) }
+  const setM = (v) => { const ns = h*3600+Math.min(59,v)*60+s; const nd={...durations,[mode]:Math.max(10,ns)}; setDur(nd); setSecs(nd[mode]) }
+  const setS = (v) => { const ns = h*3600+m*60+Math.min(59,v); const nd={...durations,[mode]:Math.max(10,ns)}; setDur(nd); setSecs(nd[mode]) }
 
   useEffect(() => {
     if (!running) return
-    intervalRef.current = setInterval(() => {
-      setSecs(s => {
-        if (s <= 1) {
-          clearInterval(intervalRef.current)
-          setRunning(false)
+    timerRef.current = setInterval(() => {
+      setSecs(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current); setRunning(false)
           playChime()
-          setLog(l => [...l, { mode, secs: durations[mode], at: Date.now() }])
+          const entry = { mode, secs: durations[mode], task: task || "Untitled", at: Date.now() }
+          setLog(l => [...l, entry])
           if (mode === "focus") setSessions(p => p + 1)
           setAlert(mode)
           return 0
         }
-        return s - 1
+        return prev - 1
       })
     }, 1000)
-    return () => clearInterval(intervalRef.current)
-  }, [running, mode])
+    return () => clearInterval(timerRef.current)
+  }, [running, mode, durations, task])
 
-  // Analytics derived
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0)
-  const todayLog = log.filter(l => l.at >= todayStart.getTime())
-  const focusTotal = todayLog.filter(l => l.mode === "focus").reduce((a, b) => a + b.secs, 0)
-  const breakTotal = todayLog.filter(l => l.mode !== "focus").reduce((a, b) => a + b.secs, 0)
+  // Derived analytics
+  const today = new Date(); today.setHours(0,0,0,0)
+  const todayLog = log.filter(l => l.at >= today.getTime())
+  const focusSecs = todayLog.filter(l => l.mode === "focus").reduce((a, b) => a + b.secs, 0)
+  const breakSecs = todayLog.filter(l => l.mode !== "focus").reduce((a, b) => a + b.secs, 0)
   const todaySessions = todayLog.filter(l => l.mode === "focus").length
 
-  // Bar chart: last 7 completed focus sessions in minutes
-  const last7 = log.filter(l => l.mode === "focus").slice(-7)
-  const maxBar = Math.max(...last7.map(l => l.secs), 1)
+  // Per-task totals (all time)
+  const taskMap = {}
+  log.filter(l => l.mode === "focus").forEach(l => {
+    if (!taskMap[l.task]) taskMap[l.task] = { secs: 0, sessions: 0 }
+    taskMap[l.task].secs += l.secs
+    taskMap[l.task].sessions += 1
+  })
+  const taskList = Object.entries(taskMap).sort((a, b) => b[1].secs - a[1].secs)
+  const maxTaskSecs = taskList.length > 0 ? taskList[0][1].secs : 1
 
-  const startEdit = () => {
-    setEditVal(secsToInput(durations[mode]))
-    setEditErr(false)
-    setEditingTime(true)
-  }
+  // Bar chart last 8 focus sessions
+  const recentFocus = log.filter(l => l.mode === "focus").slice(-8)
+  const maxBarSecs = Math.max(...recentFocus.map(l => l.secs), 1)
 
-  const commitEdit = () => {
-    const parsed = parseTimeInput(editVal)
-    if (!parsed || parsed < 10) { setEditErr(true); return }
-    const nd = { ...durations, [mode]: parsed }
-    setDurations(nd)
-    setSecs(parsed)
-    setEditingTime(false)
-    setEditErr(false)
-  }
+  const TASK_COLORS = ["#e8d5b0","#a8c4b8","#a8b8d4","#d4a8c4","#c4d4a8","#d4c4a8","#a8c4d4"]
 
   const isLastMin = secs <= 60 && secs > 10 && running
   const isLastTen = secs <= 10 && running
 
+  const timeColor = isLastTen ? "#e88a8a" : isLastMin ? "#e8c878" : cfg.color
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Bebas+Neue&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{background:#0a0a0f;min-height:100vh;font-family:'Space Grotesk',sans-serif;color:#e2e2ee}
-        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#2a2a3a;border-radius:4px}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.45}}
-        @keyframes blink{0%,100%{border-color:rgba(192,132,252,0.6)}50%{border-color:rgba(192,132,252,0.15)}}
-        @keyframes alertIn{0%{opacity:0;transform:scale(0.85)}60%{transform:scale(1.03)}100%{opacity:1;transform:scale(1)}}
-        @keyframes tick{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-        .mode-tab:hover{background:rgba(255,255,255,0.06)!important}
-        .ctrl:hover{filter:brightness(1.15);transform:scale(1.05)}
-        .ctrl:active{transform:scale(0.93)}
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0 }
+        body { background: #0c0c10 }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes scaleIn { from { opacity:0; transform:scale(0.92) } to { opacity:1; transform:scale(1) } }
+        @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
+        @keyframes shimmer { 0% { opacity:0.4 } 50% { opacity:1 } 100% { opacity:0.4 } }
+        .pm-root { min-height:100vh; background:#0c0c10; color:rgba(255,255,255,0.85);
+          font-family:'DM Sans',sans-serif; display:flex; flex-direction:column;
+          align-items:center; padding:40px 16px 60px; gap:0 }
+        .mode-pill { display:flex; gap:2px; background:rgba(255,255,255,0.03);
+          border:1px solid rgba(255,255,255,0.06); border-radius:100px; padding:3px }
+        .mode-btn { padding:7px 18px; border-radius:100px; border:none; background:transparent;
+          font-family:'DM Sans',sans-serif; font-size:12px; font-weight:400; cursor:pointer;
+          transition:all 0.2s; letter-spacing:0.02em; white-space:nowrap }
+        .mode-btn.active { background:rgba(255,255,255,0.09); color:rgba(255,255,255,0.9) }
+        .mode-btn:not(.active) { color:rgba(255,255,255,0.3) }
+        .glass-card { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06);
+          border-radius:20px; backdrop-filter:blur(20px) }
+        .stat-card { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05);
+          border-radius:14px; padding:16px; text-align:center; transition:border-color 0.2s }
+        .stat-card:hover { border-color:rgba(255,255,255,0.1) }
+        .divider { height:1px; background:rgba(255,255,255,0.05); margin:0 }
+        .task-chip { padding:6px 14px; border-radius:100px; border:1px solid rgba(255,255,255,0.08);
+          background:rgba(255,255,255,0.03); font-family:'DM Sans',sans-serif; font-size:11px;
+          color:rgba(255,255,255,0.45); cursor:pointer; transition:all 0.15s; white-space:nowrap }
+        .task-chip:hover { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.7);
+          border-color:rgba(255,255,255,0.15) }
+        .task-chip.selected { color:rgba(255,255,255,0.9); border-color:rgba(255,255,255,0.2);
+          background:rgba(255,255,255,0.06) }
+        .ctrl-btn { display:flex; align-items:center; justify-content:center;
+          border:1px solid rgba(255,255,255,0.08); border-radius:14px; cursor:pointer;
+          transition:all 0.18s; font-family:'DM Sans',sans-serif }
+        .ctrl-btn:hover { border-color:rgba(255,255,255,0.18); background:rgba(255,255,255,0.06) }
+        .ctrl-btn:active { transform:scale(0.93) }
+        .alert-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7);
+          backdrop-filter:blur(24px); z-index:1000;
+          display:flex; align-items:center; justify-content:center; padding:16px }
+        .alert-card { background:#111116; border:1px solid rgba(255,255,255,0.08);
+          border-radius:24px; padding:36px 32px 28px; text-align:center;
+          max-width:360px; width:100%; animation:scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1) }
+        .al-btn { flex:1; padding:12px; border-radius:12px; border:none; cursor:pointer;
+          font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; transition:all 0.15s }
+        ::-webkit-scrollbar { width:4px }
+        ::-webkit-scrollbar-track { background:transparent }
+        ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:2px }
       `}</style>
 
-      <div style={{
-        minHeight:"100vh", background:"#0a0a0f",
-        display:"flex", flexDirection:"column", alignItems:"center",
-        padding:"32px 16px 48px", gap:28, animation:"fadeUp .5s ease"
-      }}>
+      <div className="pm-root">
 
         {/* Header */}
-        <div style={{textAlign:"center"}}>
-          <h1 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:30,letterSpacing:4,
-            color:"#e2e2ee",marginBottom:4}}>POMODORO</h1>
-          <p style={{fontSize:11,color:"#4b4b6b",letterSpacing:2,textTransform:"uppercase"}}>Deep Work Timer</p>
+        <div style={{ textAlign: "center", marginBottom: 36, animation: "fadeIn 0.5s ease" }}>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, fontWeight: 300,
+            letterSpacing: "0.35em", color: "rgba(255,255,255,0.25)", textTransform: "uppercase",
+            marginBottom: 4 }}>
+            FOCUS STUDIO
+          </h1>
         </div>
 
-        {/* Mode tabs */}
-        <div style={{display:"flex",gap:4,background:"#111118",borderRadius:14,padding:4,
-          border:"1px solid rgba(255,255,255,0.06)"}}>
-          {Object.entries(MODES).map(([k,m]) => (
-            <button key={k} className="mode-tab"
+        {/* Mode pills */}
+        <div className="mode-pill" style={{ marginBottom: 48, animation: "fadeIn 0.5s ease 0.05s both" }}>
+          {Object.entries(MODES).map(([k, v]) => (
+            <button key={k} className={`mode-btn${mode === k ? " active" : ""}`}
               onClick={() => switchMode(k)}
-              style={{
-                padding:"9px 20px", borderRadius:10, border:"none",
-                background: mode===k ? m.bg : "transparent",
-                color: mode===k ? m.color : "#4b4b6b",
-                fontSize:12, fontWeight:600, cursor:"pointer",
-                outline: mode===k ? `1px solid ${m.color}33` : "none",
-                transition:"all .2s", whiteSpace:"nowrap"
-              }}>
-              {m.emoji} {m.label}
+              style={{ color: mode === k ? v.color : undefined }}>
+              {v.label}
             </button>
           ))}
         </div>
 
-        {/* Circle Timer */}
-        <div style={{position:"relative",width:SIZE,height:SIZE}}>
-          <svg width={SIZE} height={SIZE} style={{transform:"rotate(-90deg)",position:"absolute",inset:0}}>
-            <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth={9}/>
-            <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-              stroke={cfg.color} strokeWidth={9}
-              strokeLinecap="round"
-              strokeDasharray={CIRC}
-              strokeDashoffset={offset}
-              style={{
-                transition:"stroke-dashoffset 0.9s ease, stroke 0.3s",
-                filter:`drop-shadow(0 0 10px ${cfg.glow})`
-              }}/>
+        {/* Timer Circle */}
+        <div style={{ position: "relative", width: 280, height: 280, marginBottom: 12,
+          animation: "fadeIn 0.5s ease 0.1s both" }}>
+          <Ring progress={progress} color={cfg.accent} size={280} strokeWidth={2} />
+
+          {/* Outer subtle ring */}
+          <svg width={280} height={280} style={{ position: "absolute", inset: 0 }}>
+            <circle cx={140} cy={140} r={136} fill="none"
+              stroke="rgba(255,255,255,0.025)" strokeWidth={1} />
           </svg>
 
-          {/* Inner */}
-          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",
-            alignItems:"center",justifyContent:"center",gap:6}}>
+          {/* Center content */}
+          <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center", gap: 0 }}>
 
-            {/* Editable time */}
-            {editingTime && !running ? (
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
-                <input
-                  autoFocus
-                  value={editVal}
-                  onChange={e => { setEditVal(e.target.value); setEditErr(false) }}
-                  onKeyDown={e => { if(e.key==="Enter") commitEdit(); if(e.key==="Escape") setEditingTime(false) }}
-                  onBlur={commitEdit}
-                  style={{
-                    background:"transparent",
-                    border:"none",
-                    borderBottom:`2px solid ${editErr?"#f87171":cfg.color}`,
-                    color: editErr?"#f87171":cfg.color,
-                    fontFamily:"'Bebas Neue',sans-serif",
-                    fontSize:52, letterSpacing:2,
-                    textAlign:"center", width:180, outline:"none",
-                    animation:"blink .8s ease infinite"
-                  }}
-                  placeholder="25:00"
-                />
-                <p style={{fontSize:10,color:"#4b4b6b",letterSpacing:1}}>
-                  {editErr ? "INVALID FORMAT" : "hh:mm:ss · mm:ss · 90m · 1h30m"}
-                </p>
-              </div>
-            ) : (
-              <div
-                onClick={() => !running && startEdit()}
-                title={running ? "" : "Click to edit time"}
-                style={{
-                  cursor: running ? "default" : "text",
-                  display:"flex",flexDirection:"column",alignItems:"center",gap:2
-                }}>
-                <p style={{
-                  fontFamily:"'Bebas Neue',sans-serif",
-                  fontSize: secs >= 36000 ? 42 : secs >= 3600 ? 52 : 64,
-                  letterSpacing:2, lineHeight:1, margin:0,
-                  color: isLastTen ? "#f87171" : isLastMin ? "#fbbf24" : cfg.color,
-                  animation: isLastTen ? "tick .5s ease infinite" : "none",
-                  textShadow: running ? `0 0 24px ${isLastTen?"rgba(248,113,113,0.6)":cfg.glow}` : "none",
-                  transition:"color .3s, font-size .2s"
-                }}>
-                  {formatDisplay(secs)}
-                </p>
-                {!running && (
-                  <p style={{fontSize:9,color:"#2a2a4b",letterSpacing:2,textTransform:"uppercase"}}>
-                    TAP TO EDIT
-                  </p>
-                )}
-              </div>
-            )}
+            {/* Time display with spinboxes */}
+            <div style={{ display: "flex", alignItems: "center", gap: h > 0 ? 2 : 4 }}>
+              {h > 0 && (
+                <>
+                  <SpinField val={h} onChange={setH} max={11} fontSize={52} color={timeColor} />
+                  <span style={{ fontSize: 40, color: "rgba(255,255,255,0.15)", fontFamily: "'DM Mono'",
+                    marginTop: -4, paddingBottom: 8 }}>:</span>
+                </>
+              )}
+              <SpinField val={m} onChange={setM} max={59} fontSize={h > 0 ? 52 : 68} color={timeColor} />
+              <span style={{ fontSize: h > 0 ? 40 : 52, color: "rgba(255,255,255,0.15)",
+                fontFamily: "'DM Mono'", marginTop: -4, paddingBottom: 8 }}>:</span>
+              <SpinField val={s} onChange={setS} max={59} fontSize={h > 0 ? 52 : 68} color={timeColor} />
+            </div>
 
-            <p style={{fontSize:11,color:"#4b4b6b",letterSpacing:2,textTransform:"uppercase",
-              marginTop:2}}>
-              {cfg.emoji} {cfg.label}
-            </p>
+            {/* Mode label */}
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6 }}>
+              {running && (
+                <div style={{ display: "flex", gap: 3 }}>
+                  {[0,1,2].map(i => (
+                    <div key={i} style={{ width: 3, height: 3, borderRadius: "50%", background: cfg.accent,
+                      animation: `pulse 1.2s ease ${i * 0.3}s infinite` }} />
+                  ))}
+                </div>
+              )}
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.12em",
+                textTransform: "uppercase", fontWeight: 300 }}>
+                {cfg.tip}
+              </span>
+            </div>
 
-            {running && (
-              <div style={{display:"flex",gap:4,marginTop:2}}>
-                {[0,1,2].map(i=>(
-                  <div key={i} style={{width:4,height:4,borderRadius:"50%",background:cfg.color,
-                    animation:`pulse 1s ease ${i*0.25}s infinite`}}/>
-                ))}
+            {/* Countdown warning */}
+            {isLastTen && (
+              <div style={{ marginTop: 4, fontSize: 11, color: "#e88a8a",
+                animation: "pulse 0.6s ease infinite" }}>
+                {secs}s left
               </div>
             )}
           </div>
         </div>
 
-        {/* Warning */}
-        {isLastMin && !isLastTen && (
-          <p style={{fontSize:12,color:"#fbbf24",fontWeight:600,letterSpacing:1,
-            animation:"pulse 1.2s ease infinite",marginTop:-16}}>
-            ⚡ Almost done — keep going!
-          </p>
-        )}
-        {isLastTen && (
-          <p style={{fontSize:13,color:"#f87171",fontWeight:700,letterSpacing:1,
-            animation:"pulse 0.6s ease infinite",marginTop:-16}}>
-            🔥 {secs}s remaining
-          </p>
-        )}
+        {/* Progress % */}
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.18)", letterSpacing: "0.08em",
+          marginBottom: 36, animation: "fadeIn 0.5s ease 0.15s both" }}>
+          {Math.round(progress * 100)}% remaining
+        </div>
 
         {/* Controls */}
-        <div style={{display:"flex",alignItems:"center",gap:14,marginTop:-8}}>
-          <button className="ctrl" onClick={reset}
-            style={{width:50,height:50,borderRadius:15,background:"#111118",
-              border:"1px solid rgba(255,255,255,0.08)",color:"#4b4b6b",
-              fontSize:20,cursor:"pointer",transition:"all .2s",
-              display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 40,
+          animation: "fadeIn 0.5s ease 0.2s both" }}>
+          <button className="ctrl-btn"
+            onClick={reset}
+            style={{ width: 48, height: 48, background: "rgba(255,255,255,0.02)",
+              color: "rgba(255,255,255,0.3)", fontSize: 16 }}
+            title="Reset">
             ↺
           </button>
 
-          <button className="ctrl" onClick={() => { setAlert(null); setRunning(r=>!r) }}
+          <button
+            onClick={() => { setAlert(null); setRunning(r => !r) }}
             style={{
-              width:76,height:76,borderRadius:22,border:"none",
-              background:`linear-gradient(135deg,${cfg.color},${cfg.color}bb)`,
-              color:"#fff",fontSize:30,cursor:"pointer",
-              display:"flex",alignItems:"center",justifyContent:"center",
-              boxShadow:`0 8px 28px ${cfg.glow}`,transition:"all .2s"
-            }}>
+              width: 72, height: 72, borderRadius: 22,
+              background: running
+                ? "rgba(255,255,255,0.06)"
+                : `rgba(${cfg.accent === "#c9a96e" ? "201,169,110" : cfg.accent === "#6ba898" ? "107,168,152" : "107,142,201"},0.15)`,
+              border: `1px solid ${running ? "rgba(255,255,255,0.1)" : cfg.accent + "55"}`,
+              color: running ? "rgba(255,255,255,0.6)" : cfg.color,
+              fontSize: 26, cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", transition: "all 0.2s",
+              boxShadow: running ? "none" : `0 0 32px ${cfg.glow}`,
+              fontFamily: "inherit"
+            }}
+            onMouseEnter={e => !running && (e.currentTarget.style.boxShadow = `0 0 48px ${cfg.glow}`)}
+            onMouseLeave={e => e.currentTarget.style.boxShadow = running ? "none" : `0 0 32px ${cfg.glow}`}>
             {running ? "⏸" : "▶"}
           </button>
 
-          <button className="ctrl" onClick={() => {
-            const next = mode==="focus"?(sessions>0&&(sessions+1)%4===0?"long":"short"):"focus"
-            switchMode(next)
-          }}
-            style={{width:50,height:50,borderRadius:15,background:"#111118",
-              border:"1px solid rgba(255,255,255,0.08)",color:"#4b4b6b",
-              fontSize:20,cursor:"pointer",transition:"all .2s",
-              display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <button className="ctrl-btn"
+            onClick={() => {
+              const next = mode === "focus" ? (sessions > 0 && sessions % 4 === 3 ? "long" : "short") : "focus"
+              switchMode(next)
+            }}
+            style={{ width: 48, height: 48, background: "rgba(255,255,255,0.02)",
+              color: "rgba(255,255,255,0.3)", fontSize: 16 }}
+            title="Skip">
             ⏭
           </button>
         </div>
 
         {/* Session dots */}
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
-          {[0,1,2,3].map(i=>(
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40,
+          animation: "fadeIn 0.5s ease 0.25s both" }}>
+          {[0,1,2,3].map(i => (
             <div key={i} style={{
-              width:i===3?8:24,height:6,borderRadius:3,transition:"all .4s",
-              background: i < sessions%4
-                ? cfg.color
-                : i===sessions%4&&running
-                  ? `linear-gradient(90deg,${cfg.color} ${Math.round((1-progress)*100)}%,rgba(255,255,255,0.07) 0%)`
+              height: 4, borderRadius: 2, transition: "all 0.4s",
+              width: i < sessions % 4 ? 28 : i === sessions % 4 && running ? 28 : i === 3 ? 6 : 16,
+              background: i < sessions % 4
+                ? cfg.accent
+                : i === sessions % 4 && running
+                  ? `linear-gradient(90deg, ${cfg.accent} ${Math.round((1-progress)*100)}%, rgba(255,255,255,0.07) 0%)`
                   : "rgba(255,255,255,0.07)"
-            }}/>
+            }} />
           ))}
-          <span style={{fontSize:10,color:"#3a3a5a",marginLeft:4,letterSpacing:1}}>
-            {sessions} SESSION{sessions!==1?"S":""}
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", marginLeft: 4, letterSpacing: "0.05em" }}>
+            {sessions} session{sessions !== 1 ? "s" : ""}
           </span>
         </div>
 
-        {/* ── Analytics ── */}
-        <div style={{
-          width:"100%",maxWidth:480,
-          background:"#0d0d15",
-          border:"1px solid rgba(255,255,255,0.06)",
-          borderRadius:20,overflow:"hidden"
-        }}>
-          {/* Header */}
-          <div style={{padding:"16px 20px",borderBottom:"1px solid rgba(255,255,255,0.05)",
-            display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <p style={{fontSize:12,fontWeight:700,letterSpacing:2,color:"#4b4b6b",textTransform:"uppercase"}}>
-              📊 Today's Analytics
-            </p>
-            {log.length > 0 && (
-              <button onClick={() => setLog([])}
-                style={{fontSize:9,color:"#2a2a4a",background:"none",border:"none",
-                  cursor:"pointer",letterSpacing:1,textTransform:"uppercase"}}>
-                RESET
-              </button>
-            )}
-          </div>
+        {/* Main content card */}
+        <div style={{ width: "100%", maxWidth: 440, display: "flex", flexDirection: "column", gap: 12,
+          animation: "fadeIn 0.5s ease 0.3s both" }}>
 
-          {/* Stats row */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:1,
-            borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
-            {[
-              { label:"Focus Time", val: focusTotal>0 ? fmtHM(focusTotal) : "—", color:"#c084fc" },
-              { label:"Breaks", val: breakTotal>0 ? fmtHM(breakTotal) : "—", color:"#34d399" },
-              { label:"Sessions", val: todaySessions>0 ? todaySessions : "—", color:"#60a5fa" },
-            ].map(s => (
-              <div key={s.label} style={{padding:"14px 16px",textAlign:"center"}}>
-                <p style={{fontSize:22,fontWeight:700,fontFamily:"'Bebas Neue',sans-serif",
-                  letterSpacing:2,color:s.color,margin:"0 0 3px"}}>{s.val}</p>
-                <p style={{fontSize:9,color:"#2a2a4a",letterSpacing:1,textTransform:"uppercase"}}>{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Bar chart */}
-          <div style={{padding:"16px 20px"}}>
-            <p style={{fontSize:9,color:"#2a2a4a",letterSpacing:2,textTransform:"uppercase",marginBottom:12}}>
-              Last {last7.length} Focus Sessions
-            </p>
-            {last7.length === 0 ? (
-              <div style={{height:60,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <p style={{fontSize:11,color:"#2a2a4a",letterSpacing:1}}>Complete a session to see data</p>
-              </div>
-            ) : (
-              <div style={{display:"flex",alignItems:"flex-end",gap:6,height:64}}>
-                {last7.map((l, i) => {
-                  const pct = l.secs / maxBar
-                  return (
-                    <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                      <p style={{fontSize:8,color:BAR_COLORS[i%5],opacity:0.7}}>
-                        {Math.round(l.secs/60)}m
-                      </p>
-                      <div style={{
-                        width:"100%", height: Math.max(pct * 48, 4),
-                        borderRadius:4, background:BAR_COLORS[i%5],
-                        opacity:0.7+(0.3*pct),
-                        transition:"height .4s ease",
-                        boxShadow:`0 0 8px ${BAR_COLORS[i%5]}55`
-                      }}/>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Tip */}
-        <p style={{fontSize:10,color:"#2a2a4a",letterSpacing:1,textAlign:"center",maxWidth:340}}>
-          💡 Tap the timer to type any duration — e.g. <span style={{color:"#3a3a6a"}}>1:30:00</span>, <span style={{color:"#3a3a6a"}}>90m</span>, or <span style={{color:"#3a3a6a"}}>2h</span>. Up to 12 hours.
-        </p>
-      </div>
-
-      {/* ── Alert overlay ── */}
-      {alert && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.8)",
-          backdropFilter:"blur(20px)",zIndex:999,
-          display:"flex",alignItems:"center",justifyContent:"center"}}
-          onClick={() => setAlert(null)}>
-          <div onClick={e=>e.stopPropagation()}
-            style={{
-              background:"#0d0d15",
-              border:`1px solid ${alert==="focus"?"rgba(52,211,153,0.25)":"rgba(96,165,250,0.25)"}`,
-              borderRadius:24,padding:"40px 44px",textAlign:"center",maxWidth:380,width:"90%",
-              boxShadow:`0 32px 80px rgba(0,0,0,0.9)`,
-              animation:"alertIn .45s cubic-bezier(0.34,1.56,0.64,1) both"
-            }}>
-            <p style={{fontSize:56,marginBottom:12,animation:"pop 0.8s ease"}}>
-              {alert==="focus"?"🎉":"💪"}
-            </p>
-            <h2 style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,letterSpacing:3,
-              color:"#e2e2ee",marginBottom:8}}>
-              {alert==="focus"?"SESSION DONE!":"BREAK OVER"}
-            </h2>
-            <p style={{fontSize:13,color:"#4b4b6b",lineHeight:1.7,marginBottom:20}}>
-              {alert==="focus"
-                ? `Session #${sessions} complete. ${Math.round(durations.focus/60)} minutes of deep work. 🔥`
-                : "Time to get back in the zone. You've got this."}
-            </p>
-
-            {alert==="focus" && (
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
-                <div style={{padding:"12px",background:"rgba(192,132,252,0.08)",
-                  border:"1px solid rgba(192,132,252,0.15)",borderRadius:12}}>
-                  <p style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"#c084fc",letterSpacing:2}}>
-                    {sessions}
-                  </p>
-                  <p style={{fontSize:9,color:"#3a3a5a",letterSpacing:1,textTransform:"uppercase"}}>Sessions</p>
-                </div>
-                <div style={{padding:"12px",background:"rgba(52,211,153,0.08)",
-                  border:"1px solid rgba(52,211,153,0.15)",borderRadius:12}}>
-                  <p style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:22,color:"#34d399",letterSpacing:2}}>
-                    {fmtHM(focusTotal)}
-                  </p>
-                  <p style={{fontSize:9,color:"#3a3a5a",letterSpacing:1,textTransform:"uppercase"}}>Focused</p>
-                </div>
-              </div>
-            )}
-
-            <div style={{display:"flex",gap:8}}>
-              {alert==="focus" && (
-                <button onClick={() => { setAlert(null); switchMode("short") }}
-                  style={{flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",
-                    background:"linear-gradient(135deg,#34d399,#059669)",
-                    color:"#fff",fontSize:13,fontWeight:700,
-                    boxShadow:"0 6px 20px rgba(52,211,153,0.35)"}}>
-                  ☕ Short Break
+          {/* Task selector */}
+          <div className="glass-card" style={{ padding: "18px 20px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em",
+                textTransform: "uppercase" }}>
+                Current Task
+              </span>
+              {task && (
+                <button onClick={() => setTask("")}
+                  style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", background: "none",
+                    border: "none", cursor: "pointer", letterSpacing: "0.05em" }}>
+                  clear
                 </button>
               )}
-              <button onClick={() => { setAlert(null); switchMode("focus") }}
-                style={{flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",
-                  background: alert==="focus"?"rgba(255,255,255,0.06)":"linear-gradient(135deg,#7c3aed,#a855f7)",
-                  color: alert==="focus"?"#6b6b8a":"#fff",
-                  border: alert==="focus"?"1px solid rgba(255,255,255,0.08)":"none",
-                  fontSize:13,fontWeight:700,
-                  boxShadow:alert!=="focus"?"0 6px 20px rgba(124,58,237,0.4)":"none"}}>
-                {alert==="focus"?"⏭ Skip Break":"🎯 Focus"}
+            </div>
+
+            {/* Selected task display */}
+            {task ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.accent }} />
+                <span style={{ fontSize: 14, color: cfg.color, fontWeight: 500 }}>{task}</span>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 12 }}>
+                {showTaskInput ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      autoFocus
+                      value={taskInput}
+                      onChange={e => setTaskInput(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && taskInput.trim()) { setTask(taskInput.trim()); setTaskInput(""); setShowTaskInput(false) }
+                        if (e.key === "Escape") setShowTaskInput(false)
+                      }}
+                      placeholder="What are you working on?"
+                      style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 10, padding: "8px 12px", color: "rgba(255,255,255,0.8)", fontSize: 13,
+                        fontFamily: "'DM Sans',sans-serif", outline: "none" }} />
+                    <button onClick={() => { if (taskInput.trim()) { setTask(taskInput.trim()); setTaskInput(""); setShowTaskInput(false) } }}
+                      style={{ padding: "8px 14px", background: cfg.dim, border: `1px solid ${cfg.accent}44`,
+                        borderRadius: 10, color: cfg.color, fontSize: 12, cursor: "pointer",
+                        fontFamily: "'DM Sans',sans-serif" }}>
+                      Set
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowTaskInput(true)}
+                    style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.03)",
+                      border: "1px dashed rgba(255,255,255,0.08)", borderRadius: 10, padding: "8px 14px",
+                      cursor: "pointer", fontFamily: "'DM Sans',sans-serif", width: "100%", textAlign: "left" }}>
+                    + Add task name…
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Preset chips */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {PRESET_TASKS.map(t => (
+                <button key={t} className={`task-chip${task === t ? " selected" : ""}`}
+                  onClick={() => setTask(task === t ? "" : t)}
+                  style={{ color: task === t ? cfg.color : undefined,
+                    borderColor: task === t ? cfg.accent + "55" : undefined,
+                    background: task === t ? cfg.dim : undefined }}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Today's stats */}
+          <div className="glass-card" style={{ overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px 12px", fontSize: 10, color: "rgba(255,255,255,0.2)",
+              letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              Today
+            </div>
+            <div className="divider" />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr" }}>
+              {[
+                { label: "Focus", val: fmtShort(focusSecs) || "—", c: "#e8d5b0" },
+                { label: "Break", val: fmtShort(breakSecs) || "—", c: "#a8c4b8" },
+                { label: "Sessions", val: todaySessions || "—", c: "#a8b8d4" },
+              ].map((s, i) => (
+                <div key={s.label} style={{
+                  padding: "16px 12px", textAlign: "center",
+                  borderRight: i < 2 ? "1px solid rgba(255,255,255,0.04)" : "none"
+                }}>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 22, fontWeight: 500,
+                    color: s.c, letterSpacing: "-0.5px", marginBottom: 4 }}>
+                    {s.val}
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", letterSpacing: "0.12em",
+                    textTransform: "uppercase" }}>
+                    {s.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Per-task totals */}
+          <div className="glass-card" style={{ overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px 12px", display: "flex", justifyContent: "space-between",
+              alignItems: "center" }}>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", letterSpacing: "0.15em",
+                textTransform: "uppercase" }}>
+                Task Totals
+              </span>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", letterSpacing: "0.05em" }}>
+                All time
+              </span>
+            </div>
+            <div className="divider" />
+            <div style={{ padding: "4px 20px 16px" }}>
+              {taskList.length === 0 ? (
+                <div style={{ padding: "20px 0", fontSize: 12, color: "rgba(255,255,255,0.18)",
+                  textAlign: "center", letterSpacing: "0.05em" }}>
+                  Complete a session to see task totals
+                </div>
+              ) : (
+                taskList.map(([name, data], i) => (
+                  <TaskRow key={name} name={name} secs={data.secs} sessions={data.sessions}
+                    color={TASK_COLORS[i % TASK_COLORS.length]} rank={i} />
+                ))
+              )}
+              {/* Grand total */}
+              {taskList.length > 0 && (
+                <div style={{ paddingTop: 12, display: "flex", justifyContent: "space-between",
+                  alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", letterSpacing: "0.08em",
+                    textTransform: "uppercase" }}>
+                    Total focused
+                  </span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 16, fontWeight: 500,
+                    color: "rgba(255,255,255,0.7)" }}>
+                    {fmtShort(log.filter(l => l.mode === "focus").reduce((a, b) => a + b.secs, 0))}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Session bar chart */}
+          <div className="glass-card" style={{ overflow: "hidden" }}>
+            <div style={{ padding: "14px 20px 12px", fontSize: 10, color: "rgba(255,255,255,0.2)",
+              letterSpacing: "0.15em", textTransform: "uppercase" }}>
+              Session History
+            </div>
+            <div className="divider" />
+            <div style={{ padding: "16px 20px 20px" }}>
+              {recentFocus.length === 0 ? (
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.18)", textAlign: "center",
+                  padding: "16px 0", letterSpacing: "0.05em" }}>
+                  No sessions yet
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 72 }}>
+                  {recentFocus.map((l, i) => {
+                    const pct = l.secs / maxBarSecs
+                    const taskIdx = taskList.findIndex(([n]) => n === l.task)
+                    const barColor = TASK_COLORS[taskIdx >= 0 ? taskIdx % TASK_COLORS.length : i % TASK_COLORS.length]
+                    return (
+                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column",
+                        alignItems: "center", gap: 4, height: "100%" }}>
+                        <span style={{ fontSize: 9, color: "rgba(255,255,255,0.2)" }}>
+                          {Math.round(l.secs / 60)}m
+                        </span>
+                        <div style={{
+                          width: "100%", height: Math.max(pct * 52, 4),
+                          borderRadius: "3px 3px 0 0", background: barColor,
+                          opacity: 0.55 + 0.45 * pct,
+                          transition: "height 0.5s cubic-bezier(0.4,0,0.2,1)",
+                          marginTop: "auto"
+                        }} />
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Clear data */}
+          {log.length > 0 && (
+            <button onClick={() => { setLog([]); setSessions(0) }}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11,
+                color: "rgba(255,255,255,0.15)", letterSpacing: "0.08em", padding: "4px 0",
+                fontFamily: "'DM Sans',sans-serif", textAlign: "center",
+                transition: "color 0.15s" }}
+              onMouseEnter={e => e.currentTarget.style.color = "rgba(255,255,255,0.35)"}
+              onMouseLeave={e => e.currentTarget.style.color = "rgba(255,255,255,0.15)"}>
+              clear all data
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Alert overlay */}
+      {alert && (
+        <div className="alert-overlay" onClick={() => setAlert(null)}>
+          <div className="alert-card" onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 48, marginBottom: 14 }}>
+              {alert === "focus" ? "✦" : "◈"}
+            </div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 24, fontWeight: 300,
+              color: "rgba(255,255,255,0.85)", marginBottom: 6, letterSpacing: "0.02em" }}>
+              {alert === "focus" ? "Session complete" : "Break over"}
+            </div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginBottom: 6,
+              lineHeight: 1.7 }}>
+              {alert === "focus"
+                ? `${Math.round(durations.focus / 60)} minutes of deep work${task ? ` on ${task}` : ""}. Session #${sessions}.`
+                : "Time to return to focus."}
+            </div>
+            {alert === "focus" && task && (
+              <div style={{ marginBottom: 16, padding: "8px 14px", background: "rgba(255,255,255,0.03)",
+                borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize: 10, color: "rgba(255,255,255,0.2)", letterSpacing: "0.1em",
+                  textTransform: "uppercase", display: "block", marginBottom: 4 }}>Total on "{task}"</span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 18,
+                  color: cfg.color, fontWeight: 500 }}>
+                  {fmtShort(log.filter(l => l.mode === "focus" && l.task === task).reduce((a, b) => a + b.secs, 0) + durations.focus)}
+                </span>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+              {alert === "focus" && (
+                <button className="al-btn"
+                  onClick={() => { setAlert(null); switchMode("short") }}
+                  style={{ background: "rgba(168,196,184,0.1)", color: "#a8c4b8",
+                    border: "1px solid rgba(168,196,184,0.2)" }}>
+                  Short break
+                </button>
+              )}
+              <button className="al-btn"
+                onClick={() => { setAlert(null); switchMode("focus") }}
+                style={{
+                  background: alert === "focus" ? "rgba(255,255,255,0.04)" : "rgba(232,213,176,0.1)",
+                  color: alert === "focus" ? "rgba(255,255,255,0.5)" : "#e8d5b0",
+                  border: alert === "focus" ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(232,213,176,0.2)"
+                }}>
+                {alert === "focus" ? "Skip break" : "Start focus"}
               </button>
             </div>
           </div>
