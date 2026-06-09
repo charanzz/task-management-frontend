@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 
 const DEFAULT_MINS = { focus: 25, short: 5, long: 15 }
+const STORAGE_KEY = 'pomo_v3'
 
 const MODE_CFG = {
   focus: { label:'Focus',       color:'#a855f7', glow:'rgba(168,85,247,.4)', bg:'rgba(168,85,247,.08)', emoji:'🎯', tip:'Deep work time' },
@@ -13,17 +14,28 @@ const ALERT_SOUNDS = {
   chime: [523, 659, 784, 1047],
 }
 
-// ── Focus sound engine using Web Audio API ────────────────
 const SOUNDS = {
-  none:   { label:'None',      emoji:'🔇' },
-  rain:   { label:'Rain',      emoji:'🌧️' },
-  cafe:   { label:'Café',      emoji:'☕' },
-  nature: { label:'Forest',    emoji:'🌲' },
+  none:   { label:'None',       emoji:'🔇' },
+  rain:   { label:'Rain',       emoji:'🌧️' },
+  cafe:   { label:'Café',       emoji:'☕' },
+  nature: { label:'Forest',     emoji:'🌲' },
   white:  { label:'White Noise',emoji:'〰️' },
-  waves:  { label:'Ocean',     emoji:'🌊' },
-  fire:   { label:'Fireplace', emoji:'🔥' },
+  waves:  { label:'Ocean',      emoji:'🌊' },
+  fire:   { label:'Fireplace',  emoji:'🔥' },
 }
 
+// ── Persist helpers ───────────────────────────────────────
+function loadStorage() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') } catch { return {} }
+}
+function saveStorage(patch) {
+  try {
+    const prev = loadStorage()
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, ...patch }))
+  } catch {}
+}
+
+// ── Sound engine ──────────────────────────────────────────
 class SoundEngine {
   constructor() { this.ctx = null; this.nodes = []; this.gain = null }
 
@@ -42,9 +54,7 @@ class SoundEngine {
         for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
         const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true
         src.connect(this.gain); src.start(); this.nodes.push(src)
-
       } else if (type === 'rain') {
-        // Pink noise via white noise + lowpass
         const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 2, this.ctx.sampleRate)
         const data = buf.getChannelData(0)
         let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0
@@ -58,9 +68,7 @@ class SoundEngine {
         const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true
         const lp = this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=600
         src.connect(lp); lp.connect(this.gain); src.start(); this.nodes.push(src)
-
       } else if (type === 'cafe') {
-        // Layered: low murmur + occasional clink
         const mkNoise = (freq, q, vol) => {
           const buf = this.ctx.createBuffer(1, this.ctx.sampleRate*2, this.ctx.sampleRate)
           const d = buf.getChannelData(0)
@@ -71,9 +79,7 @@ class SoundEngine {
           src.connect(f); f.connect(g); g.connect(this.gain); src.start(); this.nodes.push(src)
         }
         mkNoise(300, 0.5, 0.4); mkNoise(800, 0.3, 0.2)
-
       } else if (type === 'nature') {
-        // Birds chirp simulation
         const chirp = () => {
           if (!this.ctx) return
           const o = this.ctx.createOscillator(); const g = this.ctx.createGain()
@@ -87,16 +93,13 @@ class SoundEngine {
           setTimeout(chirp, 800+Math.random()*2000)
         }
         chirp()
-        // Wind base
         const buf = this.ctx.createBuffer(1,this.ctx.sampleRate*2,this.ctx.sampleRate)
         const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1
         const src = this.ctx.createBufferSource(); src.buffer=buf; src.loop=true
         const lp = this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=200
         const wg = this.ctx.createGain(); wg.gain.value=0.1
         src.connect(lp); lp.connect(wg); wg.connect(this.gain); src.start(); this.nodes.push(src)
-
       } else if (type === 'waves') {
-        // LFO-modulated noise for ocean waves
         const buf = this.ctx.createBuffer(1,this.ctx.sampleRate*4,this.ctx.sampleRate)
         const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1
         const src = this.ctx.createBufferSource(); src.buffer=buf; src.loop=true
@@ -105,9 +108,7 @@ class SoundEngine {
         lfo.frequency.value=0.12; lfog.gain.value=0.3
         lfo.connect(lfog); lfog.connect(lp.frequency)
         lfo.start(); src.connect(lp); lp.connect(this.gain); src.start(); this.nodes.push(src,lfo)
-
       } else if (type === 'fire') {
-        // Crackling via random gain modulation
         const buf = this.ctx.createBuffer(1,this.ctx.sampleRate*2,this.ctx.sampleRate)
         const d = buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1
         const src = this.ctx.createBufferSource(); src.buffer=buf; src.loop=true
@@ -165,7 +166,19 @@ function playBeep(freqs) {
 }
 
 function formatTime(s) {
-  return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+}
+
+function formatLifetime(secs) {
+  const h = Math.floor(secs / 3600)
+  const m = Math.floor((secs % 3600) / 60)
+  if (h >= 1000) return `${h.toLocaleString()}h`
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
 }
 
 function Confetti({ color }) {
@@ -188,41 +201,161 @@ function Confetti({ color }) {
 }
 
 export default function PomodoroTimer({ tasks = [], running: extRunning, setRunning: extSetRunning, secs: extSecs, setSecs: extSetSecs, mode: extMode, setMode: extSetMode, sessions: extSessions, setSessions: extSetSessions }) {
-  const [modeLocal, setModeLocal]       = useState('focus')
-  const [customMins, setCustom]         = useState({...DEFAULT_MINS})
-  const [secsLocal, setSecsLocal]       = useState(DEFAULT_MINS.focus * 60)
-  const [runningLocal, setRunningLocal] = useState(false)
-  const [sessionsLocal, setSessionsLocal] = useState(0)
+  // ── Restore persisted state ──────────────────────────────
+  const stored = loadStorage()
 
-  // Use lifted state if provided (persistent mini-bar), else use local
-  const mode      = extMode      ?? modeLocal
-  const setMode   = extSetMode   ?? setModeLocal
-  const secs      = extSecs      ?? secsLocal
-  const setSecs   = extSetSecs   ?? setSecsLocal
-  const running   = extRunning   ?? runningLocal
-  const setRunning= extSetRunning?? setRunningLocal
-  const sessions  = extSessions  ?? sessionsLocal
-  const setSessions=extSetSessions??setSessionsLocal
-  const [selectedTask, setSel]    = useState(null)
-  const [showTasks, setShowTasks] = useState(false)
-  const [sound, setSound]         = useState('none')
-  const [volume, setVolume]       = useState(0.4)
-  const [showSounds, setShowSnd]  = useState(false)
-  const [alert, setAlert]         = useState(null)   // null | 'focus' | 'break'
-  const [showConf, setShowConf]   = useState(false)
-  const [editing, setEditing]     = useState(false)  // editing time
-  const intervalRef               = useRef(null)
-  const cfg                       = MODE_CFG[mode]
-  const totalSecs                 = customMins[mode] * 60
-  const progress                  = totalSecs > 0 ? secs / totalSecs : 0
-  const SIZE                      = 260
-  const R                         = (SIZE - 20) / 2
-  const CIRC                      = 2 * Math.PI * R
-  const offset                    = CIRC * (1 - progress)
+  const [modeLocal, setModeLocal]         = useState(stored.mode || 'focus')
+  const [customMins, setCustom]           = useState(stored.customMins || {...DEFAULT_MINS})
+  const [secsLocal, setSecsLocal]         = useState(stored.secs ?? (stored.customMins?.[stored.mode||'focus'] ?? DEFAULT_MINS[stored.mode||'focus']) * 60)
+  const [runningLocal, setRunningLocal]   = useState(false) // never auto-resume on mount
+  const [sessionsLocal, setSessionsLocal] = useState(stored.sessions || 0)
 
+  // Lifted state passthrough
+  const mode       = extMode       ?? modeLocal
+  const setMode    = extSetMode    ?? setModeLocal
+  const secs       = extSecs       ?? secsLocal
+  const setSecs    = extSetSecs    ?? setSecsLocal
+  const running    = extRunning    ?? runningLocal
+  const setRunning = extSetRunning ?? setRunningLocal
+  const sessions   = extSessions   ?? sessionsLocal
+  const setSessions= extSetSessions?? setSessionsLocal
+
+  // Lifetime focus seconds
+  const [lifetimeSecs, setLifetime] = useState(stored.lifetimeSecs || 0)
+
+  const [selectedTask, setSel]     = useState(null)
+  const [showTasks, setShowTasks]  = useState(false)
+  const [sound, setSound]          = useState('none')
+  const [volume, setVolume]        = useState(0.4)
+  const [showSounds, setShowSnd]   = useState(false)
+  const [alert, setAlert]          = useState(null)
+  const [showConf, setShowConf]    = useState(false)
+
+  const intervalRef   = useRef(null)
+  // For tab-hidden drift correction
+  const startedAtRef  = useRef(null) // wall-clock ms when timer last started / resumed
+  const secsAtStartRef= useRef(null) // secs value when timer last started / resumed
+
+  const cfg      = MODE_CFG[mode]
+  const totalSecs= customMins[mode] * 60
+  const progress = totalSecs > 0 ? secs / totalSecs : 0
+  const SIZE     = 260
+  const R        = (SIZE - 20) / 2
+  const CIRC     = 2 * Math.PI * R
+  const offset   = CIRC * (1 - progress)
+
+  // ── Persist on key state changes ────────────────────────
+  useEffect(() => {
+    saveStorage({ mode, secs, sessions, customMins, lifetimeSecs })
+  }, [mode, secs, sessions, customMins, lifetimeSecs])
+
+  // ── Core timer logic ─────────────────────────────────────
+  function handleExpiry() {
+    clearInterval(intervalRef.current)
+    setRunning(false)
+    startedAtRef.current = null
+    playBeep(ALERT_SOUNDS.chime)
+    if (mode === 'focus') {
+      const newSessions = sessions + 1
+      setSessions(newSessions)
+      // Accumulate lifetime
+      setLifetime(lt => {
+        const updated = lt + customMins.focus * 60
+        saveStorage({ lifetimeSecs: updated })
+        return updated
+      })
+      setAlert('focus')
+      setShowConf(true)
+      setTimeout(() => setShowConf(false), 2500)
+    } else {
+      setAlert('break')
+    }
+    if (Notification.permission === 'granted') {
+      new Notification(mode === 'focus' ? '🎯 Focus session complete!' : '⏰ Break time over!', {
+        body: mode === 'focus' ? 'Amazing work! Time for a break 🎉' : 'Back to focus mode! You got this 💪',
+      })
+    }
+  }
+
+  const startInterval = useCallback(() => {
+    clearInterval(intervalRef.current)
+    intervalRef.current = setInterval(() => {
+      setSecs(s => {
+        if (s <= 1) { handleExpiry(); return 0 }
+        return s - 1
+      })
+    }, 1000)
+  }, [mode, sessions, customMins])
+
+  useEffect(() => {
+    if (running) {
+      startedAtRef.current   = Date.now()
+      secsAtStartRef.current = secs
+      startInterval()
+    } else {
+      clearInterval(intervalRef.current)
+    }
+    return () => clearInterval(intervalRef.current)
+  }, [running])
+
+  // ── Tab visibility drift correction ──────────────────────
+  useEffect(() => {
+    function onVisibility() {
+      if (document.visibilityState === 'visible' && running && startedAtRef.current !== null) {
+        const elapsed = Math.floor((Date.now() - startedAtRef.current) / 1000)
+        const corrected = Math.max(0, secsAtStartRef.current - elapsed)
+        clearInterval(intervalRef.current)
+        if (corrected <= 0) {
+          setSecs(0)
+          handleExpiry()
+        } else {
+          setSecs(corrected)
+          // Restart interval from corrected position
+          startedAtRef.current   = Date.now()
+          secsAtStartRef.current = corrected
+          intervalRef.current = setInterval(() => {
+            setSecs(s => {
+              if (s <= 1) { handleExpiry(); return 0 }
+              return s - 1
+            })
+          }, 1000)
+        }
+      }
+      // When hidden, snapshot wall clock so we can correct on return
+      if (document.visibilityState === 'hidden' && running) {
+        startedAtRef.current   = Date.now()
+        secsAtStartRef.current = secs
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [running, secs, mode, sessions, customMins])
+
+  // ── Notification permission ───────────────────────────────
+  useEffect(() => {
+    if (Notification.permission === 'default') Notification.requestPermission()
+  }, [])
+
+  // ── Sound control ─────────────────────────────────────────
+  useEffect(() => {
+    if (running && sound !== 'none') soundEngine.start(sound, volume)
+    else soundEngine.stop()
+    return () => soundEngine.stop()
+  }, [running, sound])
+
+  useEffect(() => { soundEngine.setVolume(volume) }, [volume])
+
+  // ── Document title ────────────────────────────────────────
+  useEffect(() => {
+    document.title = running ? `${formatTime(secs)} ${cfg.emoji} ${cfg.label} | TaskFlow` : 'TaskFlow'
+    return () => { document.title = 'TaskFlow' }
+  }, [running, secs, cfg])
+
+  // ── Timer controls ────────────────────────────────────────
   const stopTimer = useCallback(() => {
     clearInterval(intervalRef.current)
     setRunning(false)
+    startedAtRef.current = null
   }, [])
 
   const resetTimer = useCallback((m = mode, mins = customMins) => {
@@ -240,73 +373,62 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
     setSecs(customMins[m] * 60)
   }, [customMins, stopTimer])
 
-  // Adjust time by ±1 min while not running
   function adjustTime(delta) {
-    const newMins = Math.max(1, Math.min(99, customMins[mode] + delta))
+    // Max 360 mins (6 hours), min 1 min
+    const newMins = Math.max(1, Math.min(360, customMins[mode] + delta))
     const newCustom = { ...customMins, [mode]: newMins }
     setCustom(newCustom)
     setSecs(newMins * 60)
   }
 
-  useEffect(() => {
-    if (!running) return
-    intervalRef.current = setInterval(() => {
-      setSecs(s => {
-        if (s <= 1) {
-          clearInterval(intervalRef.current)
-          setRunning(false)
-          // Play sound
-          playBeep(ALERT_SOUNDS.chime)
-          // Show in-page alert
-          if (mode === 'focus') {
-            setSessions(p => p + 1)
-            setAlert('focus')
-            setShowConf(true)
-            setTimeout(() => setShowConf(false), 2500)
-          } else {
-            setAlert('break')
-          }
-          // Browser notification
-          if (Notification.permission === 'granted') {
-            new Notification(mode === 'focus' ? '🎯 Focus session complete!' : '⏰ Break time over!', {
-              body: mode === 'focus' ? 'Amazing work! Time for a break 🎉' : 'Back to focus mode! You got this 💪',
-              icon: '/favicon.ico'
-            })
-          }
-          return 0
-        }
-        return s - 1
-      })
-    }, 1000)
-    return () => clearInterval(intervalRef.current)
-  }, [running, mode])
-
-  useEffect(() => {
-    if (Notification.permission === 'default') Notification.requestPermission()
-  }, [])
-
-  // Sound control
-  useEffect(() => {
-    if (running && sound !== 'none') soundEngine.start(sound, volume)
-    else soundEngine.stop()
-    return () => soundEngine.stop()
-  }, [running, sound])
-
-  useEffect(() => { soundEngine.setVolume(volume) }, [volume])
-
-  useEffect(() => {
-    document.title = running ? `${formatTime(secs)} ${cfg.emoji} ${cfg.label} | TaskFlow` : 'TaskFlow'
-    return () => { document.title = 'TaskFlow' }
-  }, [running, secs, cfg])
+  function adjustTimeBy(delta) {
+    // Large jumps: ±5 min for quick navigation on long timers
+    const step = customMins[mode] >= 60 ? 5 : 1
+    const newMins = Math.max(1, Math.min(360, customMins[mode] + delta * step))
+    const newCustom = { ...customMins, [mode]: newMins }
+    setCustom(newCustom)
+    setSecs(newMins * 60)
+  }
 
   const pendingTasks = tasks.filter(t => t.status !== 'DONE')
-  const isLastMin = secs <= 60 && running
-  const isLastTen = secs <= 10 && running
+  const isLastMin  = secs <= 60  && running
+  const isLastTen  = secs <= 10  && running
+  const hasHours   = secs >= 3600
+
+  // Lifetime display
+  const lifetimeHours = (lifetimeSecs / 3600).toFixed(1)
 
   return (
     <>
       <style>{css}</style>
       <div style={{maxWidth:520,margin:'0 auto',animation:'fadeUp .4s ease',fontFamily:'DM Sans,sans-serif'}}>
+
+        {/* Lifetime stats bar */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+          marginBottom:16,padding:'10px 16px',
+          background:'#0d0d14',border:'1px solid rgba(255,255,255,.06)',borderRadius:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontSize:16}}>⏳</span>
+            <div>
+              <p style={{fontSize:10,color:'#6b6b8a',margin:0,fontWeight:600,letterSpacing:'1px'}}>LIFETIME FOCUS</p>
+              <p style={{fontSize:15,fontWeight:800,color:'#a855f7',fontFamily:'Syne,sans-serif',margin:0}}>
+                {formatLifetime(lifetimeSecs)}
+              </p>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:20}}>
+            <div style={{textAlign:'center'}}>
+              <p style={{fontSize:10,color:'#6b6b8a',margin:0,fontWeight:600,letterSpacing:'1px'}}>SESSIONS</p>
+              <p style={{fontSize:15,fontWeight:800,color:'#f0f0f8',fontFamily:'Syne,sans-serif',margin:0}}>{sessions}</p>
+            </div>
+            <div style={{textAlign:'center'}}>
+              <p style={{fontSize:10,color:'#6b6b8a',margin:0,fontWeight:600,letterSpacing:'1px'}}>TODAY</p>
+              <p style={{fontSize:15,fontWeight:800,color:'#f0f0f8',fontFamily:'Syne,sans-serif',margin:0}}>
+                {formatLifetime(sessions * customMins.focus * 60)}
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Mode selector */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6,
@@ -326,62 +448,76 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
 
         {/* Timer circle */}
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:28,position:'relative'}}>
-
-          {/* Confetti */}
           {showConf && (
             <div style={{position:'absolute',width:SIZE,height:SIZE,pointerEvents:'none',zIndex:10}}>
               <Confetti color={cfg.color}/>
             </div>
           )}
 
-          {/* SVG circle */}
           <div style={{position:'relative',width:SIZE,height:SIZE}}>
             <svg width={SIZE} height={SIZE} style={{transform:'rotate(-90deg)',position:'absolute',inset:0}}>
-              {/* Track */}
-              <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-                stroke="rgba(255,255,255,.05)" strokeWidth={10}/>
-              {/* Glow layer */}
-              <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-                stroke={cfg.color} strokeWidth={10} opacity={.15}
+              <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke="rgba(255,255,255,.05)" strokeWidth={10}/>
+              <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke={cfg.color} strokeWidth={10} opacity={.15}
                 strokeDasharray={CIRC} strokeDashoffset={0}/>
-              {/* Progress */}
-              <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none"
-                stroke={cfg.color} strokeWidth={10}
-                strokeLinecap="round"
-                strokeDasharray={CIRC}
-                strokeDashoffset={offset}
+              <circle cx={SIZE/2} cy={SIZE/2} r={R} fill="none" stroke={cfg.color} strokeWidth={10}
+                strokeLinecap="round" strokeDasharray={CIRC} strokeDashoffset={offset}
                 style={{transition:'stroke-dashoffset .8s ease, stroke .3s ease',
                   filter:`drop-shadow(0 0 8px ${cfg.glow})`}}/>
             </svg>
 
-            {/* Inner content */}
             <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',
               alignItems:'center',justifyContent:'center',gap:4}}>
-              {/* Time adjust buttons — show when not running */}
+
+              {/* Time adjust — show when not running */}
               {!running && !alert && (
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                  {/* −5 / −1 */}
+                  {customMins[mode] >= 60 && (
+                    <button className="adj-btn" onClick={() => adjustTimeBy(-1)}
+                      style={{width:28,height:22,borderRadius:6,background:'rgba(255,255,255,.04)',
+                        border:'1px solid rgba(255,255,255,.08)',color:'#6b6b8a',fontSize:9,
+                        display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s',fontWeight:700}}>
+                      −5
+                    </button>
+                  )}
                   <button className="adj-btn" onClick={() => adjustTime(-1)}
                     style={{width:28,height:28,borderRadius:8,background:'rgba(255,255,255,.06)',
                       border:'1px solid rgba(255,255,255,.1)',color:'#6b6b8a',fontSize:16,
                       display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s'}}>
                     −
                   </button>
-                  <p style={{fontSize:11,color:'#6b6b8a',margin:0,fontWeight:600,letterSpacing:'1px'}}>
-                    {customMins[mode]} MIN
-                  </p>
+                  <div style={{textAlign:'center',minWidth:60}}>
+                    <p style={{fontSize:10,color:'#6b6b8a',margin:0,fontWeight:600,letterSpacing:'1px',lineHeight:1}}>
+                      {customMins[mode] >= 60
+                        ? `${Math.floor(customMins[mode]/60)}h ${customMins[mode]%60 > 0 ? customMins[mode]%60+'m' : ''}`
+                        : `${customMins[mode]} MIN`}
+                    </p>
+                    {customMins[mode] >= 60 && (
+                      <p style={{fontSize:9,color:'#6b6b8a40',margin:0}}>{customMins[mode]}m total</p>
+                    )}
+                  </div>
                   <button className="adj-btn" onClick={() => adjustTime(1)}
                     style={{width:28,height:28,borderRadius:8,background:'rgba(255,255,255,.06)',
                       border:'1px solid rgba(255,255,255,.1)',color:'#6b6b8a',fontSize:16,
                       display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s'}}>
                     +
                   </button>
+                  {customMins[mode] >= 55 && (
+                    <button className="adj-btn" onClick={() => adjustTimeBy(1)}
+                      style={{width:28,height:22,borderRadius:6,background:'rgba(255,255,255,.04)',
+                        border:'1px solid rgba(255,255,255,.08)',color:'#6b6b8a',fontSize:9,
+                        display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .15s',fontWeight:700}}>
+                      +5
+                    </button>
+                  )}
                 </div>
               )}
 
               {/* Time display */}
               <p style={{
-                fontSize: secs >= 600 ? 58 : 64,
-                fontWeight:800,fontFamily:'Syne,sans-serif',margin:0,letterSpacing:'-3px',lineHeight:1,
+                fontSize: hasHours ? 44 : secs >= 600 ? 58 : 64,
+                fontWeight:800,fontFamily:'Syne,sans-serif',margin:0,
+                letterSpacing: hasHours ? '-2px' : '-3px',lineHeight:1,
                 color: isLastTen ? '#ff6b6b' : isLastMin ? '#ffd93d' : cfg.color,
                 animation: isLastTen ? 'tickBig .5s ease infinite' : 'none',
                 transition:'color .3s',
@@ -390,12 +526,10 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
                 {formatTime(secs)}
               </p>
 
-              {/* Mode label */}
               <p style={{fontSize:12,color:'#6b6b8a',margin:'4px 0 0',fontWeight:600,letterSpacing:'1px'}}>
                 {cfg.emoji} {running ? cfg.tip : cfg.label}
               </p>
 
-              {/* Running indicator */}
               {running && (
                 <div style={{display:'flex',gap:3,marginTop:4}}>
                   {[0,1,2].map(i=>(
@@ -404,10 +538,16 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
                   ))}
                 </div>
               )}
+
+              {/* Tab-switch notice while running */}
+              {running && (
+                <p style={{fontSize:9,color:'#6b6b8a40',margin:'6px 0 0',textAlign:'center',lineHeight:1.4,maxWidth:120}}>
+                  tab-safe ✓
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Tip text below circle */}
           {isLastMin && !isLastTen && (
             <p style={{fontSize:12,color:'#ffd93d',margin:'12px 0 0',fontWeight:600,animation:'pulse 1s ease infinite'}}>
               ⚡ Almost there! Keep going…
@@ -422,32 +562,26 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
 
         {/* Controls */}
         <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:16,marginBottom:24}}>
-          {/* Reset */}
-          <button className="ctrl-btn" onClick={() => resetTimer()}
-            title="Reset"
+          <button className="ctrl-btn" onClick={() => resetTimer()} title="Reset"
             style={{width:50,height:50,borderRadius:15,background:'#1a1a24',
               border:'1px solid rgba(255,255,255,.09)',color:'#6b6b8a',fontSize:20,
               display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}}>
             ↺
           </button>
 
-          {/* Play/Pause — big */}
           <button className="ctrl-btn" onClick={() => { setAlert(null); setRunning(r => !r) }}
             style={{width:80,height:80,borderRadius:25,
               background:`linear-gradient(135deg,${cfg.color},${cfg.color}99)`,
               border:'none',color:'#fff',fontSize:32,
               display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
-              boxShadow:`0 10px 32px ${cfg.glow}`,transition:'all .2s',
-              '--gc': cfg.glow}}>
+              boxShadow:`0 10px 32px ${cfg.glow}`,transition:'all .2s'}}>
             {running ? '⏸' : '▶'}
           </button>
 
-          {/* Skip to next mode */}
           <button className="ctrl-btn" onClick={() => {
             const next = mode==='focus' ? (sessions>0&&(sessions+1)%4===0?'long':'short') : 'focus'
             switchMode(next)
-          }}
-            title="Skip"
+          }} title="Skip"
             style={{width:50,height:50,borderRadius:15,background:'#1a1a24',
               border:'1px solid rgba(255,255,255,.09)',color:'#6b6b8a',fontSize:20,
               display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all .2s'}}>
@@ -579,12 +713,12 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
           border:'1px solid rgba(124,58,237,.1)',borderRadius:12}}>
           <p style={{fontSize:11,color:'#6b6b8a',margin:0,lineHeight:1.7}}>
             💡 <strong style={{color:'#a855f7'}}>Technique:</strong> 25 min focus → 5 min break → ×4 → 15 min long break.
-            Use <strong style={{color:'#f0f0f8'}}>+ / −</strong> to adjust time. Press play and stay in flow!
+            Use <strong style={{color:'#f0f0f8'}}>+ / −</strong> to adjust up to <strong style={{color:'#f0f0f8'}}>6 hours</strong>. Timer stays accurate across tab switches!
           </p>
         </div>
       </div>
 
-      {/* ── Full-screen alert overlay ── */}
+      {/* ── Alert overlay ── */}
       {alert && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',backdropFilter:'blur(16px)',
           zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -595,27 +729,21 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
             boxShadow:`0 32px 80px rgba(0,0,0,.8), 0 0 80px ${alert==='focus'?'rgba(107,203,119,.15)':'rgba(96,165,250,.15)'}`,
             animation:'alertPop .5s cubic-bezier(.34,1.56,.64,1) both'}}>
 
-            {/* Icon */}
             <div style={{fontSize:64,marginBottom:12,animation:'ringPop .8s ease'}}>
               {alert==='focus' ? '🎉' : '💪'}
             </div>
 
-            {/* Title */}
             <h2 style={{fontSize:26,fontWeight:800,color:'#f0f0f8',fontFamily:'Syne,sans-serif',
               margin:'0 0 10px',lineHeight:1.2}}>
               {alert==='focus' ? 'Session Complete!' : 'Break Time Over!'}
             </h2>
 
-            {/* Body */}
             <p style={{fontSize:14,color:'#9ca3af',margin:'0 0 8px',lineHeight:1.7}}>
               {alert==='focus'
-                ? <>You completed session <strong style={{color:'#6bcb77'}}>#{sessions}</strong> today! 🔥<br/>
-                    Time to take a well-earned break.</>
-                : <>Time to get back in the zone.<br/>
-                    You've got this — stay consistent! ⚡</>}
+                ? <>You completed session <strong style={{color:'#6bcb77'}}>#{sessions}</strong> today! 🔥<br/>Time to take a well-earned break.</>
+                : <>Time to get back in the zone.<br/>You've got this — stay consistent! ⚡</>}
             </p>
 
-            {/* Stats row */}
             <div style={{display:'flex',gap:12,margin:'20px 0 28px',justifyContent:'center'}}>
               {alert==='focus' && (
                 <>
@@ -626,14 +754,13 @@ export default function PomodoroTimer({ tasks = [], running: extRunning, setRunn
                   </div>
                   <div style={{flex:1,padding:'12px 8px',background:'rgba(168,85,247,.08)',
                     border:'1px solid rgba(168,85,247,.2)',borderRadius:12}}>
-                    <p style={{fontSize:20,fontWeight:800,color:'#a855f7',fontFamily:'Syne,sans-serif',margin:'0 0 2px'}}>{Math.floor(sessions*customMins.focus)}m</p>
-                    <p style={{fontSize:10,color:'#6b6b8a',margin:0}}>Focused today</p>
+                    <p style={{fontSize:20,fontWeight:800,color:'#a855f7',fontFamily:'Syne,sans-serif',margin:'0 0 2px'}}>{formatLifetime(lifetimeSecs)}</p>
+                    <p style={{fontSize:10,color:'#6b6b8a',margin:0}}>Lifetime focus</p>
                   </div>
                 </>
               )}
             </div>
 
-            {/* Action buttons */}
             <div style={{display:'flex',gap:10}}>
               {alert==='focus' && (
                 <button className="dismiss-btn" onClick={() => { setAlert(null); switchMode('short') }}
